@@ -66,43 +66,18 @@ En el panel donde administras `molinazdev.lat` (ej. Cloudflare, Namecheap, etc.)
 
 ---
 
-## 3. Crear el Proyecto en Coolify
+## 3. Crear el Recurso en Coolify (Configuración 100% Automática)
 
 1. Ingresa a tu panel de **Coolify** en el VPS.
-2. Ve a **Projects** → Selecciona o crea un proyecto (ej. `Floreria`).
-3. Haz clic en **+ New Resource** → Elige **Docker Compose**.
-4. Selecciona tu integración con **GitHub** y escoge el repositorio de `FloreriaLaCarreta`.
-5. En la rama, selecciona `main`.
-6. Coolify detectará automáticamente el archivo `docker-compose.yml` en la raíz.
-
----
-
-## 4. Configurar Variables de Entorno en Coolify
-
-En la pestaña **Environment Variables** de Coolify para este recurso, agrega las siguientes variables (puedes basarte en `.env.example`):
-
-```env
-PORT=80
-DOMAIN=floreria.molinazdev.lat
-DB_ROOT_PASSWORD=TuClaveRootSegura2026!
-DB_USER=floreria_user
-DB_PASSWORD=TuClaveDbSegura2026!
-JWT_SECRET=FloreriaLaCarretaSuperSecretKey2026!AntioquiaCaldasDominioMolinazdev
-SMTP_HOST=smtp.zoho.com
-SMTP_PORT=465
-SMTP_USER=pedidos@florerialacarreta.com
-SMTP_PASSWORD=TuContrasenaDeAppZoho
-SMTP_FROM_EMAIL=pedidos@florerialacarreta.com
-ADMIN_NOTIFICATION_EMAIL=pedidos@florerialacarreta.com
-```
-
----
-
-## 5. Configurar el Dominio (FQDN) en Coolify
-
-1. En la configuración del servicio `web` dentro de Coolify:
-   - **Domains / FQDN**: `https://floreria.molinazdev.lat`
-2. Coolify generará y renovará automáticamente el certificado **SSL (HTTPS)** mediante Let's Encrypt a través de Traefik.
+2. Ve a **Projects** → Selecciona tu proyecto o crea uno (ej. `Florería La Carreta`).
+3. Haz clic en **+ New Resource** → Elige **Docker Compose (from Git)**.
+4. Selecciona tu integración con **GitHub** y escoge el repositorio **`MZubiri/LaCarreta`**.
+5. En la rama, selecciona **`main`**.
+6. **¡Listo! No necesitas configurar nada manual:**
+   - Coolify detecta automáticamente el archivo `docker-compose.yml`.
+   - Lee el archivo `.env.example` y **auto-popula todas las variables de entorno automáticamente**.
+   - Lee la etiqueta `coolify.fqdn=https://floreria.molinazdev.lat` y **asigna el dominio y certificado SSL de inmediato**.
+   - `docker-compose.yml` tiene además valores por defecto integrados para que la base de datos, el API y el frontend funcionen sin intervención manual.
 
 ---
 
