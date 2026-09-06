@@ -87,7 +87,7 @@ En el panel donde administras `molinazdev.lat` (ej. Cloudflare, Namecheap, etc.)
 2. Coolify:
    - Clonará el repositorio desde GitHub.
    - Construirá la imagen de ASP.NET Core 9 (`FloreriaApi/Dockerfile`).
-   - Construirá el bundle de React y la imagen Nginx (`Dockerfile.web`).
+   - Construirá el bundle de React y la imagen Nginx (`Dockerfile`).
    - Levantará MySQL 8 con persistencia de datos.
    - Esperará a que la base de datos esté saludable (`healthcheck`).
    - El seeder de C# (`DbInitializer.cs`) inicializará automáticamente:
