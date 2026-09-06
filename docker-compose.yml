@@ -10,6 +10,7 @@ services:
       MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-FloreriaRootPass2026!}
       MYSQL_USER: ${DB_USER:-floreria_user}
       MYSQL_PASSWORD: ${DB_PASSWORD:-FloreriaDbPass2026!Secure}
+      MYSQL_ROOT_HOST: "%"
     volumes:
       - mysql_data:/var/lib/mysql
     healthcheck:
