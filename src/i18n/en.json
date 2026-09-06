@@ -1,0 +1,115 @@
+{
+  "nav": {
+    "home": "Home",
+    "catalog": "Catalog",
+    "about": "About Us",
+    "contact": "Contact",
+    "cart": "Cart"
+  },
+  "hero": {
+    "subtitle": "Florería La Carreta",
+    "title": "Floral arrangements\nmade with love",
+    "cta": "View Catalog",
+    "cta2": "Order Now"
+  },
+  "home": {
+    "featured": "Featured Selection",
+    "featuredSub": "Our most popular arrangements, crafted with the freshest seasonal flowers.",
+    "occasions": "For Every Occasion",
+    "occasionsSub": "Find the perfect arrangement for every special moment.",
+    "cta": "View all arrangements",
+    "birthday": "Birthday",
+    "anniversary": "Anniversary",
+    "condolence": "Condolences",
+    "wedding": "Wedding",
+    "mothersDay": "Mother's Day",
+    "love": "Romantic"
+  },
+  "catalog": {
+    "title": "Our Catalog",
+    "subtitle": "Each arrangement is handcrafted with dedication and the freshest flowers.",
+    "all": "All",
+    "ramos": "Bouquets",
+    "arreglos": "Arrangements",
+    "plantas": "Plants",
+    "ocasiones": "Occasions",
+    "condolencias": "Condolences",
+    "premium": "Premium",
+    "search": "Search arrangements...",
+    "sortPrice": "Sort by price",
+    "lowToHigh": "Low to High",
+    "highToLow": "High to Low",
+    "noResults": "No arrangements found.",
+    "addToCart": "Add to Cart",
+    "viewDetail": "View Detail"
+  },
+  "product": {
+    "addToCart": "Add to Cart",
+    "added": "Added!",
+    "back": "Back to catalog",
+    "related": "You might also like"
+  },
+  "cart": {
+    "title": "Your Order",
+    "empty": "Your cart is empty",
+    "emptyMsg": "Explore our catalog and add the arrangements you like best.",
+    "exploreCta": "Explore Catalog",
+    "item": "Product",
+    "price": "Price",
+    "quantity": "Quantity",
+    "total": "Total",
+    "subtotal": "Subtotal",
+    "remove": "Remove",
+    "orderVia": "Send order via",
+    "whatsapp": "WhatsApp",
+    "email": "Email",
+    "form": {
+      "title": "Delivery Details",
+      "name": "Your Name",
+      "phone": "Phone",
+      "address": "Delivery Address",
+      "date": "Desired Delivery Date",
+      "time": "Preferred Time",
+      "message": "Card Message (optional)",
+      "notes": "Special Notes (optional)",
+      "email": "Your Email"
+    }
+  },
+  "about": {
+    "title": "Our Story",
+    "subtitle": "Over 15 years creating special moments through the language of flowers.",
+    "story": "Florería La Carreta was born from a passion for flowers and the desire to bring joy to every home. What started as a small stall in the local market has become a trusted florist for hundreds of families.",
+    "mission": "Our Mission",
+    "missionText": "To create unique floral arrangements that express emotions and transform ordinary moments into extraordinary memories.",
+    "values": "Our Values",
+    "freshness": "Freshness",
+    "freshnessText": "We work with the freshest flowers, selected every morning.",
+    "dedication": "Dedication",
+    "dedicationText": "Each arrangement is handcrafted with attention to detail.",
+    "punctuality": "Punctuality",
+    "punctualityText": "On-time deliveries because we know every moment counts."
+  },
+  "contact": {
+    "title": "Contact Us",
+    "subtitle": "We are here to help you find the perfect arrangement.",
+    "phone": "Phone",
+    "whatsapp": "WhatsApp",
+    "email": "Email",
+    "address": "Address",
+    "hours": "Hours",
+    "hoursText": "Monday to Saturday: 9:00 AM - 8:00 PM\nSunday: 10:00 AM - 3:00 PM",
+    "addressText": "Col. Centro, Mexico City"
+  },
+  "footer": {
+    "tagline": "Artisanal floral arrangements for every special moment.",
+    "quickLinks": "Quick Links",
+    "schedule": "Hours",
+    "scheduleText": "Mon - Sat: 9:00 AM - 8:00 PM\nSun: 10:00 AM - 3:00 PM",
+    "followUs": "Follow Us",
+    "rights": "All rights reserved."
+  },
+  "common": {
+    "currency": "MXN",
+    "addedToCart": "Product added to cart"
+  }
+}

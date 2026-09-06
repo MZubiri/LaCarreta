@@ -1,0 +1,78 @@
+services:
+  # MySQL Database Service
+  db:
+    image: mysql:8.0
+    container_name: floreria_db
+    restart: unless-stopped
+    command: --default-authentication-plugin=mysql_native_password --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+    environment:
+      MYSQL_DATABASE: floreria_lacarreta_db
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-FloreriaRootPass2026!}
+      MYSQL_USER: ${DB_USER:-floreria_user}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-FloreriaDbPass2026!Secure}
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "${DB_USER:-floreria_user}", "-p${DB_PASSWORD:-FloreriaDbPass2026!Secure}"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 20s
+    networks:
+      - floreria_network
+
+  # ASP.NET Core 9 Web API Service
+  api:
+    build:
+      context: ./FloreriaApi
+      dockerfile: Dockerfile
+    container_name: floreria_api
+    restart: unless-stopped
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ASPNETCORE_URLS=http://+:5000
+      - ConnectionStrings__DefaultConnection=Server=db;Database=floreria_lacarreta_db;User=${DB_USER:-floreria_user};Password=${DB_PASSWORD:-FloreriaDbPass2026!Secure};
+      - Jwt__Key=${JWT_SECRET:-FloreriaLaCarretaSuperSecretKey2026!AntioquiaCaldasDominioMolinazdev}
+      - Jwt__Issuer=FloreriaLaCarretaApi
+      - Jwt__Audience=FloreriaLaCarretaApp
+      - Smtp__Host=${SMTP_HOST:-smtp.zoho.com}
+      - Smtp__Port=${SMTP_PORT:-465}
+      - Smtp__User=${SMTP_USER:-pedidos@florerialacarreta.com}
+      - Smtp__Password=${SMTP_PASSWORD:-}
+      - Smtp__FromEmail=${SMTP_FROM_EMAIL:-pedidos@florerialacarreta.com}
+      - Smtp__FromName=Florería La Carreta
+      - Smtp__AdminEmail=${ADMIN_NOTIFICATION_EMAIL:-pedidos@florerialacarreta.com}
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - uploads_data:/app/uploads
+    networks:
+      - floreria_network
+
+  # React Frontend + Nginx Reverse Proxy
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile.web
+    container_name: floreria_web
+    restart: unless-stopped
+    ports:
+      - "${PORT:-80}:80"
+    depends_on:
+      - api
+    networks:
+      - floreria_network
+    labels:
+      - "coolify.managed=true"
+      - "coolify.fqdn=https://floreria.molinazdev.lat"
+
+volumes:
+  mysql_data:
+    driver: local
+  uploads_data:
+    driver: local
+
+networks:
+  floreria_network:
+    driver: bridge

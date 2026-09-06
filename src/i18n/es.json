@@ -1,0 +1,115 @@
+{
+  "nav": {
+    "home": "Inicio",
+    "catalog": "Catálogo",
+    "about": "Nosotros",
+    "contact": "Contacto",
+    "cart": "Carrito"
+  },
+  "hero": {
+    "subtitle": "Florería La Carreta • Caldas, Antioquia",
+    "title": "Arreglos florales\nhechos con amor",
+    "cta": "Ver Catálogo",
+    "cta2": "Pedir por WhatsApp"
+  },
+  "home": {
+    "featured": "Selección Destacada",
+    "featuredSub": "Nuestros arreglos más populares, elaborados con las flores más frescas del Valle de Aburrá.",
+    "occasions": "Para Cada Ocasión",
+    "occasionsSub": "Encuentra el detalle floral perfecto para sorprender en Caldas y Medellín.",
+    "cta": "Ver todos los arreglos",
+    "birthday": "Cumpleaños",
+    "anniversary": "Aniversario",
+    "condolence": "Condolencias",
+    "wedding": "Bodas",
+    "mothersDay": "Día de las Madres",
+    "love": "Romántico"
+  },
+  "catalog": {
+    "title": "Nuestro Catálogo",
+    "subtitle": "Cada arreglo es elaborado a mano con flores seleccionadas del campo antioqueño.",
+    "all": "Todos",
+    "ramos": "Ramos",
+    "arreglos": "Arreglos",
+    "plantas": "Plantas",
+    "ocasiones": "Ocasiones",
+    "condolencias": "Condolencias",
+    "premium": "Premium",
+    "search": "Buscar arreglos...",
+    "sortPrice": "Ordenar por precio",
+    "lowToHigh": "Menor a Mayor",
+    "highToLow": "Mayor a Menor",
+    "noResults": "No se encontraron arreglos.",
+    "addToCart": "Agregar al carrito",
+    "viewDetail": "Ver detalle"
+  },
+  "product": {
+    "addToCart": "Agregar al Carrito",
+    "added": "¡Agregado!",
+    "back": "Volver al catálogo",
+    "related": "También te puede gustar"
+  },
+  "cart": {
+    "title": "Tu Pedido",
+    "empty": "Tu carrito está vacío",
+    "emptyMsg": "Explora nuestro catálogo y agrega los arreglos que más te gusten.",
+    "exploreCta": "Explorar Catálogo",
+    "item": "Producto",
+    "price": "Precio",
+    "quantity": "Cantidad",
+    "total": "Total",
+    "subtotal": "Subtotal",
+    "remove": "Eliminar",
+    "orderVia": "Enviar pedido por",
+    "whatsapp": "WhatsApp",
+    "email": "Correo electrónico",
+    "form": {
+      "title": "Datos de entrega en Caldas / Antioquia",
+      "name": "Tu nombre completo",
+      "phone": "Teléfono / WhatsApp",
+      "address": "Dirección de entrega (Municipio, Barrio, Calle)",
+      "date": "Fecha de entrega deseada",
+      "time": "Jornada preferida",
+      "message": "Mensaje para la tarjeta (opcional)",
+      "notes": "Instrucciones especiales de entrega",
+      "email": "Tu correo electrónico"
+    }
+  },
+  "about": {
+    "title": "Nuestra Historia en Caldas",
+    "subtitle": "Creando momentos inolvidables a través de las flores en Caldas y el Valle de Aburrá.",
+    "story": "Florería La Carreta nació en el corazón de Caldas, Antioquia, impulsada por el amor a las flores colombianas y la tradición artesanal. Seleccionamos cada flor directamente de los mejores cultivos locales para garantizar máxima frescura y belleza.",
+    "mission": "Nuestra Misión",
+    "missionText": "Transmitir emociones auténticas a través de diseños florales excepcionales, entregando felicidad en Caldas, Sabaneta, Envigado y Medellín.",
+    "values": "Nuestros Valores",
+    "freshness": "Frescura Colombiana",
+    "freshnessText": "Flores frescas seleccionadas cada mañana de cultivos antioqueños.",
+    "dedication": "Diseño Artesanal",
+    "dedicationText": "Cada ramo es elaborado a mano con dedicación única.",
+    "punctuality": "Envíos Puntuales",
+    "punctualityText": "Entregas a domicilio seguras en Caldas y área metropolitana."
+  },
+  "contact": {
+    "title": "Contáctanos",
+    "subtitle": "Estamos ubicados en Caldas, Antioquia. Atendemos pedidos a domicilio.",
+    "phone": "Teléfono / Celular",
+    "whatsapp": "WhatsApp Directo",
+    "email": "Correo Electrónico",
+    "address": "Ubicación",
+    "hours": "Horario de Atención",
+    "hoursText": "Lunes a Sábado: 8:00 AM - 7:00 PM\nDomingo: 9:00 AM - 2:00 PM",
+    "addressText": "Caldas, Antioquia, Colombia"
+  },
+  "footer": {
+    "tagline": "Arreglos florales artesanales en Caldas, Antioquia.",
+    "quickLinks": "Enlaces Rápidos",
+    "schedule": "Horario",
+    "scheduleText": "Lun - Sáb: 8:00 AM - 7:00 PM\nDom: 9:00 AM - 2:00 PM",
+    "followUs": "Síguenos",
+    "rights": "Todos los derechos reservados. Caldas, Antioquia."
+  },
+  "common": {
+    "currency": "COP",
+    "addedToCart": "agregado al carrito"
+  }
+}
