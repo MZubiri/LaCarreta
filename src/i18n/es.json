@@ -12,6 +12,16 @@
     "cta": "Ver Catálogo",
     "cta2": "Pedir por WhatsApp"
   },
+  "valueProps": {
+    "delivery": "Envíos en Caldas y Área Metropolitana",
+    "deliveryText": "Entregas puntuales y cuidadosas en Caldas, Sabaneta, Envigado y Medellín.",
+    "freshness": "Flores 100% Frescas",
+    "freshnessText": "Seleccionadas cada mañana en los mejores cultivos florales de Antioquia.",
+    "artisan": "Artesanía Floral",
+    "artisanText": "Diseños elaborados a mano con pasión, elegancia y atención al detalle.",
+    "whatsapp": "Atención Personalizada",
+    "whatsappText": "Asesoría inmediata por WhatsApp para personalizar tu pedido a la medida."
+  },
   "home": {
     "featured": "Selección Destacada",
     "featuredSub": "Nuestros arreglos más populares, elaborados con las flores más frescas del Valle de Aburrá.",
@@ -23,7 +33,20 @@
     "condolence": "Condolencias",
     "wedding": "Bodas",
     "mothersDay": "Día de las Madres",
-    "love": "Romántico"
+    "love": "Romántico",
+    "curated": "Selección Especial",
+    "featuredTitle": "Arreglos Florales Destacados",
+    "featuredSubtitle": "Nuestros diseños más queridos, elaborados con flores frescas seleccionadas a mano.",
+    "viewAllCatalog": "Ver Todo el Catálogo",
+    "moments": "Para Cada Ocasión",
+    "occasionTitle": "Flores que Celebran la Vida",
+    "occasionSubtitle": "Encuentra el detalle floral perfecto para sorprender y emocionar.",
+    "exploreCategory": "Explorar categoría",
+    "ourEssence": "Nuestra Esencia",
+    "storyTitle": "Amor por las Flores en Caldas, Antioquia",
+    "storyText": "En Florería La Carreta transformamos las mejores flores colombianas en expresiones vivas de cariño, alegría y homenaje. Cada ramo y centro de mesa es elaborado artesanalmente en nuestro taller de Caldas, honrando la tradición y la belleza de nuestra tierra.",
+    "quote": "Las flores no resuelven todos los problemas, pero son un maravilloso inicio para alegrar el alma.",
+    "readMore": "Conoce Nuestra Historia"
   },
   "catalog": {
     "title": "Nuestro Catálogo",

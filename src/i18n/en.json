@@ -12,6 +12,16 @@
     "cta": "View Catalog",
     "cta2": "Order Now"
   },
+  "valueProps": {
+    "delivery": "Local & Metro Delivery",
+    "deliveryText": "Punctual, careful delivery in Caldas, Sabaneta, Envigado and Medellín.",
+    "freshness": "100% Fresh Flowers",
+    "freshnessText": "Handpicked every morning from the finest local Antioquian growers.",
+    "artisan": "Floral Craftsmanship",
+    "artisanText": "Handcrafted designs with passion, elegance and attention to detail.",
+    "whatsapp": "Personalized Service",
+    "whatsappText": "Immediate advice via WhatsApp to customize your order to perfection."
+  },
   "home": {
     "featured": "Featured Selection",
     "featuredSub": "Our most popular arrangements, crafted with the freshest seasonal flowers.",
@@ -23,7 +33,20 @@
     "condolence": "Condolences",
     "wedding": "Wedding",
     "mothersDay": "Mother's Day",
-    "love": "Romantic"
+    "love": "Romantic",
+    "curated": "Curated Selection",
+    "featuredTitle": "Featured Floral Arrangements",
+    "featuredSubtitle": "Our most loved arrangements, handcrafted with hand-selected fresh flowers.",
+    "viewAllCatalog": "View Full Catalog",
+    "moments": "For Every Occasion",
+    "occasionTitle": "Flowers That Celebrate Life",
+    "occasionSubtitle": "Find the perfect floral gesture to surprise and inspire.",
+    "exploreCategory": "Explore category",
+    "ourEssence": "Our Essence",
+    "storyTitle": "Love for Flowers in Caldas, Antioquia",
+    "storyText": "At Florería La Carreta, we transform the finest Colombian flowers into living expressions of love, joy, and tribute. Each bouquet and centerpiece is handcrafted in our Caldas workshop.",
+    "quote": "Flowers don't solve all problems, but they are a wonderful start to brighten the soul.",
+    "readMore": "Discover Our Story"
   },
   "catalog": {
     "title": "Our Catalog",
