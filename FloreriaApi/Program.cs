@@ -11,13 +11,16 @@ var builder = WebApplication.CreateBuilder(args);
 // Add services to the container.
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 
-// Pomelo MySQL Server Version auto-detect or default
+// Pomelo MySQL Server Version (8.0.30)
 var serverVersion = new MySqlServerVersion(new Version(8, 0, 30));
 
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseMySql(connectionString, serverVersion, mysqlOptions =>
     {
-        mysqlOptions.EnableRetryOnFailure();
+        mysqlOptions.EnableRetryOnFailure(
+            maxRetryCount: 10,
+            maxRetryDelay: TimeSpan.FromSeconds(5),
+            errorNumbersToAdd: null);
     }));
 
 builder.Services.AddControllers();
@@ -64,6 +67,27 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
+// Global Exception Diagnostics Middleware
+app.Use(async (context, next) =>
+{
+    try
+    {
+        await next();
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"[API Error] {context.Request.Method} {context.Request.Path}: {ex.Message}");
+        Console.WriteLine(ex.ToString());
+        context.Response.StatusCode = 500;
+        context.Response.ContentType = "application/json";
+        await context.Response.WriteAsJsonAsync(new
+        {
+            error = "Database / Internal Server Error",
+            message = ex.Message
+        });
+    }
+});
+
 // Enable CORS
 app.UseCors("AllowReactApp");
 
@@ -87,18 +111,32 @@ app.UseAuthorization();
 
 app.MapControllers();
 
-// Initialize Database Seeder
-try
+// Initialize Database Seeder with Retry Loop (up to 15 attempts, 2s apart)
+for (int attempt = 1; attempt <= 15; attempt++)
 {
-    using (var scope = app.Services.CreateScope())
+    try
     {
-        var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-        DbInitializer.Initialize(dbContext);
+        using (var scope = app.Services.CreateScope())
+        {
+            var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            Console.WriteLine($"[DB Init Attempt {attempt}/15] Connecting to MySQL & ensuring schema...");
+            DbInitializer.Initialize(dbContext);
+            Console.WriteLine("[DB Init] ✅ MySQL database schema created and seeded successfully!");
+            break;
+        }
     }
-}
-catch (Exception ex)
-{
-    Console.WriteLine($"[Seeder Note] MySQL DB init status: {ex.Message}");
+    catch (Exception ex)
+    {
+        Console.WriteLine($"[DB Init Attempt {attempt}/15] Failed: {ex.Message}");
+        if (attempt == 15)
+        {
+            Console.WriteLine($"[DB Init FATAL] Could not initialize database after 15 attempts:\n{ex}");
+        }
+        else
+        {
+            Thread.Sleep(2000);
+        }
+    }
 }
 
 app.Run();

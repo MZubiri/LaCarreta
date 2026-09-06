@@ -29,7 +29,7 @@ services:
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
       - ASPNETCORE_URLS=http://+:5000
-      - ConnectionStrings__DefaultConnection=Server=db;Database=floreria_lacarreta_db;User=${DB_USER:-floreria_user};Password=${DB_PASSWORD:-FloreriaDbPass2026!Secure};
+      - ConnectionStrings__DefaultConnection=Server=db;Port=3306;Database=floreria_lacarreta_db;User=root;Password=${DB_ROOT_PASSWORD:-FloreriaRootPass2026!};AllowPublicKeyRetrieval=True;SslMode=None;CharSet=utf8mb4;
       - Jwt__Key=${JWT_SECRET:-FloreriaLaCarretaSuperSecretKey2026!AntioquiaCaldasDominioMolinazdev}
       - Jwt__Issuer=FloreriaLaCarretaApi
       - Jwt__Audience=FloreriaLaCarretaApp
