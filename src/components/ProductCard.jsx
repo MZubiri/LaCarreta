@@ -5,6 +5,7 @@ import { CartContext } from '../context/CartContext';
 import { LanguageContext } from '../context/LanguageContext';
 import { formatCOP } from '../utils/whatsapp';
 import { api } from '../services/api';
+import { IconEye, IconBag } from './Icons';
 
 export const ProductCard = ({ product, onAddToCart, onQuickView }) => {
   const { t } = useTranslation();
@@ -48,8 +49,9 @@ export const ProductCard = ({ product, onAddToCart, onQuickView }) => {
           {product.featured && <span className="featured-badge">Destacado</span>}
           
           <div className="product-card-overlay">
-            <button onClick={handleQuick} className="btn-card-quick">
-              Vista Rápida
+            <button onClick={handleQuick} className="btn-card-quick btn-with-icon">
+              <IconEye size={15} />
+              <span>Vista Rápida</span>
             </button>
           </div>
         </div>
@@ -59,8 +61,9 @@ export const ProductCard = ({ product, onAddToCart, onQuickView }) => {
           <h3 className="product-card-name">{name}</h3>
           <div className="product-card-footer">
             <span className="product-card-price">{formatCOP(product.price)}</span>
-            <button onClick={handleAdd} className="btn-add-cart" aria-label="Agregar al carrito">
-              + {t('catalog.addToCart')}
+            <button onClick={handleAdd} className="btn-add-cart btn-with-icon" aria-label="Agregar al carrito">
+              <IconBag size={14} />
+              <span>{t('catalog.addToCart')}</span>
             </button>
           </div>
         </div>

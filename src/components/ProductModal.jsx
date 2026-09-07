@@ -5,6 +5,7 @@ import { LanguageContext } from '../context/LanguageContext';
 import { useSiteSettings } from '../context/SiteSettingsContext';
 import { formatCOP } from '../utils/whatsapp';
 import { api } from '../services/api';
+import { IconWhatsApp, IconBag } from './Icons';
 
 export const ProductModal = ({ product, onClose, onAddToCart }) => {
   const { t } = useTranslation();
@@ -57,19 +58,21 @@ export const ProductModal = ({ product, onClose, onAddToCart }) => {
 
           <div className="modal-actions">
             <div className="quantity-control" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <button onClick={() => setQuantity(Math.max(1, quantity - 1))} className="qty-btn">-</button>
+              <button onClick={() => setQuantity(Math.max(1, quantity - 1))} className="qty-btn" aria-label="Disminuir cantidad">-</button>
               <span className="qty-val">{quantity}</span>
-              <button onClick={() => setQuantity(quantity + 1)} className="qty-btn">+</button>
+              <button onClick={() => setQuantity(quantity + 1)} className="qty-btn" aria-label="Aumentar cantidad">+</button>
             </div>
 
-            <button onClick={handleAdd} className="btn-primary">
-              + {t('catalog.addToCart')}
+            <button onClick={handleAdd} className="btn-primary btn-with-icon">
+              <IconBag size={16} />
+              <span>{t('catalog.addToCart')}</span>
             </button>
           </div>
 
           <div style={{ marginTop: '1.25rem' }}>
-            <button onClick={handleWhatsApp} className="btn-whatsapp-direct" style={{ width: '100%' }}>
-              📱 Consultar por WhatsApp
+            <button onClick={handleWhatsApp} className="btn-whatsapp-direct btn-with-icon" style={{ width: '100%', justifyContent: 'center' }}>
+              <IconWhatsApp size={18} />
+              <span>Consultar por WhatsApp</span>
             </button>
           </div>
         </div>

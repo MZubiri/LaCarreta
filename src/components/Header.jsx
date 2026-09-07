@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { CartContext } from '../context/CartContext';
 import { LanguageContext } from '../context/LanguageContext';
 import { useSiteSettings } from '../context/SiteSettingsContext';
+import { IconWhatsApp } from './Icons';
 
 export const Header = ({ onOpenCart }) => {
   const { t } = useTranslation();
@@ -99,7 +100,10 @@ export const Header = ({ onOpenCart }) => {
             </nav>
             <div className="mobile-menu-footer">
               <p>Florería La Carreta</p>
-              <p className="mobile-phone">📱 {phone}</p>
+              <p className="mobile-phone" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <IconWhatsApp size={16} />
+                <span>{phone}</span>
+              </p>
             </div>
           </div>
         </div>

@@ -7,6 +7,17 @@ import { useSiteSettings } from '../context/SiteSettingsContext';
 import { ProductCard } from '../components/ProductCard';
 import { ProductModal } from '../components/ProductModal';
 import { Toast } from '../components/Toast';
+import {
+  IconWhatsApp,
+  IconDelivery,
+  IconBotanical,
+  IconArtisan,
+  IconConcierge,
+  IconMapPin,
+  IconChevronLeft,
+  IconChevronRight,
+  IconArrowRight
+} from '../components/Icons';
 
 export const Home = ({ onOpenCart }) => {
   const { t } = useTranslation();
@@ -46,7 +57,7 @@ export const Home = ({ onOpenCart }) => {
   useEffect(() => {
     const timer = setInterval(() => {
       setActiveSlide((prev) => (prev + 1) % heroSlides.length);
-    }, 5000);
+    }, 6000);
     return () => clearInterval(timer);
   }, [heroSlides.length]);
 
@@ -80,6 +91,15 @@ export const Home = ({ onOpenCart }) => {
     { key: 'condolence', label: t('home.condolence'), img: '/images/condolence-wreath.jpg', category: 'condolencias' }
   ];
 
+  const coverageMunicipalities = [
+    'Caldas',
+    'La Estrella',
+    'Sabaneta',
+    'Envigado',
+    'Itagüí',
+    'Medellín Sur'
+  ];
+
   return (
     <div className="home-page">
       <Toast message={toastMessage} onClose={() => setToastMessage('')} />
@@ -98,14 +118,17 @@ export const Home = ({ onOpenCart }) => {
               <span className="carousel-tag">{slide.tag}</span>
               <h1 className="carousel-title">{slide.title}</h1>
               <div className="carousel-actions">
-                <Link to={slide.link} className="btn-hero-primary">{t('hero.cta')}</Link>
+                <Link to={slide.link} className="btn-hero-primary">
+                  {t('hero.cta')}
+                </Link>
                 <a
                   href={getWhatsAppLink('Hola Florería La Carreta, me gustaría consultar por sus arreglos florales.')}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="btn-hero-secondary"
+                  className="btn-hero-secondary btn-hero-whatsapp"
                 >
-                  📱 WhatsApp Directo
+                  <IconWhatsApp size={18} />
+                  <span>Atención por WhatsApp</span>
                 </a>
               </div>
             </div>
@@ -117,52 +140,62 @@ export const Home = ({ onOpenCart }) => {
           <button 
             onClick={() => setActiveSlide((activeSlide - 1 + heroSlides.length) % heroSlides.length)} 
             className="carousel-arrow"
-            aria-label="Anterior"
+            aria-label="Diapositiva anterior"
           >
-            ←
+            <IconChevronLeft size={20} />
           </button>
           <div className="carousel-indicators">
             {heroSlides.map((_, idx) => (
-              <span
+              <button
                 key={idx}
+                type="button"
                 className={`indicator ${idx === activeSlide ? 'active' : ''}`}
                 onClick={() => setActiveSlide(idx)}
-              ></span>
+                aria-label={`Ir a diapositiva ${idx + 1}`}
+              />
             ))}
           </div>
           <button 
             onClick={() => setActiveSlide((activeSlide + 1) % heroSlides.length)} 
             className="carousel-arrow"
-            aria-label="Siguiente"
+            aria-label="Siguiente diapositiva"
           >
-            →
+            <IconChevronRight size={20} />
           </button>
         </div>
       </section>
 
       {/* Trust Badges / Value Props */}
-      <section className="section-tight bg-cream">
+      <section className="section-tight bg-cream value-props-section">
         <div className="container">
           <div className="value-props-grid">
             <div className="value-prop-card">
-              <span className="value-icon">🚚</span>
-              <h4>{t('valueProps.delivery')}</h4>
-              <p>{t('valueProps.deliveryText')}</p>
+              <div className="value-prop-icon-badge">
+                <IconDelivery size={24} />
+              </div>
+              <h4 className="value-prop-title">{t('valueProps.delivery')}</h4>
+              <p className="value-prop-desc">{t('valueProps.deliveryText')}</p>
             </div>
             <div className="value-prop-card">
-              <span className="value-icon">🌿</span>
-              <h4>{t('valueProps.freshness')}</h4>
-              <p>{t('valueProps.freshnessText')}</p>
+              <div className="value-prop-icon-badge">
+                <IconBotanical size={24} />
+              </div>
+              <h4 className="value-prop-title">{t('valueProps.freshness')}</h4>
+              <p className="value-prop-desc">{t('valueProps.freshnessText')}</p>
             </div>
             <div className="value-prop-card">
-              <span className="value-icon">🎨</span>
-              <h4>{t('valueProps.artisan')}</h4>
-              <p>{t('valueProps.artisanText')}</p>
+              <div className="value-prop-icon-badge">
+                <IconArtisan size={24} />
+              </div>
+              <h4 className="value-prop-title">{t('valueProps.artisan')}</h4>
+              <p className="value-prop-desc">{t('valueProps.artisanText')}</p>
             </div>
             <div className="value-prop-card">
-              <span className="value-icon">💬</span>
-              <h4>{t('valueProps.whatsapp')}</h4>
-              <p>{t('valueProps.whatsappText')}</p>
+              <div className="value-prop-icon-badge">
+                <IconConcierge size={24} />
+              </div>
+              <h4 className="value-prop-title">{t('valueProps.whatsapp')}</h4>
+              <p className="value-prop-desc">{t('valueProps.whatsappText')}</p>
             </div>
           </div>
         </div>
@@ -188,14 +221,15 @@ export const Home = ({ onOpenCart }) => {
         </div>
 
         <div className="text-center" style={{ marginTop: '3.5rem' }}>
-          <Link to="/catalogo" className="btn-secondary">
-            {t('home.viewAllCatalog')}
+          <Link to="/catalogo" className="btn-secondary btn-with-icon">
+            <span>{t('home.viewAllCatalog')}</span>
+            <IconArrowRight size={16} />
           </Link>
         </div>
       </section>
 
       {/* Shop by Occasion */}
-      <section className="section bg-cream">
+      <section className="section bg-cream occasions-section">
         <div className="container">
           <div className="section-header">
             <span className="section-tag">{t('home.moments')}</span>
@@ -214,7 +248,10 @@ export const Home = ({ onOpenCart }) => {
                 <div className="occasion-overlay"></div>
                 <div className="occasion-content">
                   <h3 className="occasion-title">{item.label}</h3>
-                  <span className="occasion-cta">{t('home.exploreCategory')} →</span>
+                  <span className="occasion-cta">
+                    <span>{t('home.exploreCategory')}</span>
+                    <IconArrowRight size={15} className="occasion-cta-arrow" />
+                  </span>
                 </div>
               </Link>
             ))}
@@ -223,10 +260,19 @@ export const Home = ({ onOpenCart }) => {
       </section>
 
       {/* Craftsmanship / Story Preview */}
-      <section className="section container">
+      <section className="section container artisan-section">
         <div className="artisan-story-grid">
           <div className="story-image-wrap">
-            <img src="/images/artisan-florist.jpg" alt="Florista artesanal de La Carreta" className="story-image" loading="lazy" />
+            <img 
+              src="/images/artisan-florist.jpg" 
+              alt="Florista artesanal de La Carreta en Caldas" 
+              className="story-image" 
+              loading="lazy" 
+            />
+            <div className="story-badge-floating">
+              <span className="story-badge-year">Desde Caldas</span>
+              <span className="story-badge-sub">Antioquia</span>
+            </div>
           </div>
           <div className="story-content">
             <span className="section-tag">{t('home.ourEssence')}</span>
@@ -235,27 +281,48 @@ export const Home = ({ onOpenCart }) => {
               {t('home.storyText')}
             </p>
             <div className="story-quote">
-              <p>"{t('home.quote')}"</p>
-              <span>— La Familia La Carreta, Caldas</span>
+              <div className="story-quote-mark">“</div>
+              <p className="story-quote-text">{t('home.quote')}</p>
+              <span className="story-quote-author">— La Familia La Carreta, Caldas</span>
             </div>
-            <Link to="/nosotros" className="btn-primary" style={{ marginTop: '1.5rem', display: 'inline-block' }}>
-              {t('home.readMore')}
+            <Link to="/nosotros" className="btn-primary btn-with-icon" style={{ marginTop: '2rem', display: 'inline-flex' }}>
+              <span>{t('home.readMore')}</span>
+              <IconArrowRight size={16} />
             </Link>
           </div>
         </div>
       </section>
 
       {/* Delivery Coverage Banner */}
-      <section className="delivery-banner">
-        <div className="container delivery-container">
-          <div className="delivery-icon-box">📍</div>
-          <div className="delivery-text">
-            <h3>Envíos locales en Caldas y Municipios Aledaños</h3>
-            <p>Llevamos tus flores frescas a Caldas, La Estrella, Sabaneta, Envigado, Itagüí y el sur del Valle de Aburrá.</p>
+      <section className="delivery-banner-section">
+        <div className="container">
+          <div className="delivery-banner-card">
+            <div className="delivery-banner-body">
+              <div className="delivery-icon-box">
+                <IconMapPin size={28} />
+              </div>
+              <div className="delivery-text-content">
+                <span className="delivery-tag">Cobertura Garantizada</span>
+                <h3 className="delivery-title">Envíos directos en Caldas y el Sur del Valle de Aburrá</h3>
+                <p className="delivery-desc">
+                  Entregamos arreglos florales frescos, confeccionados el mismo día, con transporte especializado y cuidado absoluto.
+                </p>
+                <div className="delivery-chips">
+                  {coverageMunicipalities.map((municipality, i) => (
+                    <span key={i} className="delivery-chip">
+                      {municipality}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            </div>
+            <div className="delivery-action-wrap">
+              <Link to="/contacto" className="btn-delivery-action btn-with-icon">
+                <span>Consultar Cobertura</span>
+                <IconArrowRight size={16} />
+              </Link>
+            </div>
           </div>
-          <Link to="/contacto" className="btn-delivery-action">
-            Consultar Cobertura
-          </Link>
         </div>
       </section>
     </div>

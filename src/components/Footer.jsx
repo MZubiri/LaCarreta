@@ -2,10 +2,11 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useSiteSettings } from '../context/SiteSettingsContext';
+import { IconMapPin, IconWhatsApp } from './Icons';
 
 export const Footer = () => {
   const { t } = useTranslation();
-  const { address, city, phone, whatsApp, instagram, facebook, scheduleWeekdays, scheduleWeekends, getWhatsAppLink } = useSiteSettings();
+  const { address, city, phone, instagram, facebook, scheduleWeekdays, scheduleWeekends, getWhatsAppLink } = useSiteSettings();
 
   return (
     <footer className="footer">
@@ -13,8 +14,16 @@ export const Footer = () => {
         <div className="footer-col brand-col">
           <h3 className="footer-title">Florería La Carreta</h3>
           <p className="footer-tagline">{t('footer.tagline')}</p>
-          <p className="footer-address">📍 {address}, {city}</p>
-          <p className="footer-phone">📱 WhatsApp: {phone}</p>
+          <div className="footer-contact-details">
+            <p className="footer-contact-item">
+              <IconMapPin size={16} className="footer-contact-icon" />
+              <span>{address}, {city}</span>
+            </p>
+            <p className="footer-contact-item">
+              <IconWhatsApp size={16} className="footer-contact-icon" />
+              <span>WhatsApp: {phone}</span>
+            </p>
+          </div>
         </div>
 
         <div className="footer-col">
@@ -25,7 +34,6 @@ export const Footer = () => {
             <li><Link to="/nosotros">{t('nav.about')}</Link></li>
             <li><Link to="/contacto">{t('nav.contact')}</Link></li>
             <li><Link to="/carrito">{t('nav.cart')}</Link></li>
-
           </ul>
         </div>
 
