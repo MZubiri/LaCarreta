@@ -268,6 +268,7 @@ export const Home = ({ onOpenCart }) => {
               alt="Florista artesanal de La Carreta en Caldas" 
               className="story-image" 
               loading="lazy" 
+              onError={(e) => { e.target.src = '/images/hero-floral.jpg'; }}
             />
             <div className="story-badge-floating">
               <span className="story-badge-year">Desde Caldas</span>
