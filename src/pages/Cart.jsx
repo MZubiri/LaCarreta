@@ -114,15 +114,15 @@ export const Cart = () => {
 
   if (orderSent) {
     return (
-      <div className="cart-page container text-center" style={{ padding: '6rem 1rem' }}>
-        <div style={{ maxWidth: '550px', margin: '0 auto', padding: '3rem 2rem', border: '1px solid #E8E6E1', backgroundColor: '#F9F8F6' }}>
+      <div className="cart-page container text-center" style={{ padding: '4rem 1rem' }}>
+        <div style={{ maxWidth: '550px', margin: '0 auto', padding: '3rem 2rem', border: '1px solid var(--color-border)', backgroundColor: 'var(--color-bg-alt)' }}>
           <span style={{ fontSize: '3.5rem', display: 'block', marginBottom: '1rem' }}>🌸</span>
           <h2 style={{ fontSize: '2.5rem', marginBottom: '0.5rem' }}>¡Gracias por tu pedido!</h2>
           {createdOrderCode && (
             <div style={{
               display: 'inline-block',
-              backgroundColor: '#FEF3C7',
-              color: '#92400E',
+              backgroundColor: 'var(--color-pink)',
+              color: 'var(--color-burgundy)',
               padding: '0.4rem 1rem',
               borderRadius: '20px',
               fontWeight: 700,

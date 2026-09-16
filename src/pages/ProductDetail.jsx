@@ -50,8 +50,8 @@ export const ProductDetail = () => {
 
   if (!product && !loading) {
     return (
-      <div className="section container text-center" style={{ padding: '80px 20px' }}>
-        <h2>Arreglo floral no encontrado</h2>
+      <div className="section container text-center" style={{ padding: '4rem 1.5rem' }}>
+        <h2>{t('catalog.notFound')}</h2>
         <Link to="/catalogo" className="btn-primary" style={{ marginTop: '20px', display: 'inline-block', maxWidth: '240px' }}>
           Volver al Catálogo
         </Link>
@@ -133,7 +133,7 @@ export const ProductDetail = () => {
                 Ideal para:
               </span>
               {occasions.map((occ, idx) => (
-                <span key={idx} className="coverage-tag" style={{ color: '#1A1A1A', borderColor: '#E8E6E1' }}>
+                <span key={idx} className="coverage-tag" style={{ color: 'var(--color-text-primary)', borderColor: 'var(--color-border)' }}>
                   {occ}
                 </span>
               ))}
@@ -159,7 +159,7 @@ export const ProductDetail = () => {
       </div>
 
       {relatedProducts.length > 0 && (
-        <div style={{ marginTop: '5rem', borderTop: '1px solid #E8E6E1', paddingTop: '3rem' }}>
+        <div style={{ marginTop: '3.5rem', borderTop: '1px solid var(--color-border)', paddingTop: '2.5rem' }}>
           <h3 className="section-title" style={{ fontSize: '1.75rem', marginBottom: '2rem' }}>
             También te podría interesar
           </h3>

@@ -551,7 +551,7 @@ export const Admin = () => {
         justifyContent: 'space-between',
         alignItems: 'center',
         marginBottom: '2rem',
-        borderBottom: '1px solid #E8E6E1',
+        borderBottom: '1px solid var(--color-border)',
         paddingBottom: '1.5rem',
         gap: '1rem'
       }}>
