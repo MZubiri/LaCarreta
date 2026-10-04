@@ -16,6 +16,7 @@ import { Contact } from './pages/Contact';
 import { Admin } from './pages/Admin';
 import { Terms } from './pages/Terms';
 import { Privacy } from './pages/Privacy';
+import { TrackOrder } from './pages/TrackOrder';
 import { NotFound } from './pages/NotFound';
 
 import './i18n';
@@ -47,6 +48,7 @@ export function AppContent() {
             <Route path="/catalogo" element={<Catalog onOpenCart={() => setIsCartDrawerOpen(true)} />} />
             <Route path="/catalogo/:id" element={<ProductDetail />} />
             <Route path="/carrito" element={<Cart />} />
+            <Route path="/rastreo" element={<TrackOrder />} />
             <Route path="/nosotros" element={<About />} />
             <Route path="/contacto" element={<Contact />} />
             <Route path="/admin" element={<Admin />} />

@@ -13,5 +13,11 @@ namespace FloreriaApi.DTOs
         public string ScheduleWeekends { get; set; } = string.Empty;
         public string GoogleMapsEmbedUrl { get; set; } = string.Empty;
         public string DeliveryNotes { get; set; } = string.Empty;
+        public string HeroImageUrl { get; set; } = string.Empty;
+        public string HeroTitle { get; set; } = string.Empty;
+        public string HeroTag { get; set; } = string.Empty;
+        public string TelegramBotToken { get; set; } = string.Empty;
+        public string TelegramChatId { get; set; } = string.Empty;
+        public string WebhookUrl { get; set; } = string.Empty;
     }
 }

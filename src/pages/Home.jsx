@@ -21,7 +21,7 @@ import {
 
 export const Home = ({ onOpenCart }) => {
   const { t } = useTranslation();
-  const { getWhatsAppLink } = useSiteSettings();
+  const { getWhatsAppLink, heroImageUrl, heroTitle, heroTag } = useSiteSettings();
   const [activeSlide, setActiveSlide] = useState(0);
   const [toastMessage, setToastMessage] = useState('');
   const [selectedProduct, setSelectedProduct] = useState(null);
@@ -32,9 +32,9 @@ export const Home = ({ onOpenCart }) => {
   const heroSlides = [
     {
       id: 1,
-      image: '/images/hero-floral.jpg',
-      tag: 'Colección Floral Antioquia',
-      title: 'Arreglos florales hechos con pasión artesanal',
+      image: heroImageUrl || '/images/hero-floral.jpg',
+      tag: heroTag || 'Colección Floral Antioquia',
+      title: heroTitle || 'Arreglos florales hechos con pasión artesanal',
       link: '/catalogo'
     },
     {

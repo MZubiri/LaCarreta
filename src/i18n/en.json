@@ -4,7 +4,8 @@
     "catalog": "Catalog",
     "about": "About Us",
     "contact": "Contact",
-    "cart": "Cart"
+    "cart": "Cart",
+    "tracking": "Track Order"
   },
   "hero": {
     "subtitle": "Florería La Carreta",

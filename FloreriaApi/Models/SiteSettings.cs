@@ -40,6 +40,24 @@ namespace FloreriaApi.Models
         [MaxLength(500)]
         public string DeliveryNotes { get; set; } = "Entregas en Caldas, La Estrella, Sabaneta, Itagüí y Envigado.";
 
+        [MaxLength(500)]
+        public string HeroImageUrl { get; set; } = "/images/hero-floral.jpg";
+
+        [MaxLength(200)]
+        public string HeroTitle { get; set; } = "Arreglos florales hechos con pasión artesanal";
+
+        [MaxLength(100)]
+        public string HeroTag { get; set; } = "Colección Floral Antioquia";
+
+        [MaxLength(150)]
+        public string TelegramBotToken { get; set; } = "";
+
+        [MaxLength(60)]
+        public string TelegramChatId { get; set; } = "";
+
+        [MaxLength(500)]
+        public string WebhookUrl { get; set; } = "";
+
         public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
     }
 }

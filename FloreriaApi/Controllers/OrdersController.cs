@@ -14,13 +14,48 @@ namespace FloreriaApi.Controllers
     {
         private readonly ApplicationDbContext _context;
         private readonly IEmailService _emailService;
+        private readonly ITelegramNotificationService _telegramService;
         private readonly ILogger<OrdersController> _logger;
 
-        public OrdersController(ApplicationDbContext context, IEmailService emailService, ILogger<OrdersController> logger)
+        public OrdersController(
+            ApplicationDbContext context,
+            IEmailService emailService,
+            ITelegramNotificationService telegramService,
+            ILogger<OrdersController> logger)
         {
             _context = context;
             _emailService = emailService;
+            _telegramService = telegramService;
             _logger = logger;
+        }
+
+        // GET: api/orders/track/{query} (Public - Tracking by OrderCode or CustomerPhone)
+        [HttpGet("track/{query}")]
+        public async Task<ActionResult<IEnumerable<Order>>> TrackOrder(string query)
+        {
+            if (string.IsNullOrWhiteSpace(query))
+            {
+                return BadRequest(new { message = "Por favor ingresa un código de pedido o número de teléfono" });
+            }
+
+            var cleanQuery = query.Trim().ToLower();
+            var cleanPhone = new string(query.Where(char.IsDigit).ToArray());
+
+            var orders = await _context.Orders
+                .Include(o => o.Items)
+                .Where(o => 
+                    o.OrderCode.ToLower() == cleanQuery ||
+                    (!string.IsNullOrEmpty(cleanPhone) && o.CustomerPhone.Contains(cleanPhone)))
+                .OrderByDescending(o => o.CreatedAt)
+                .Take(5)
+                .ToListAsync();
+
+            if (!orders.Any())
+            {
+                return NotFound(new { message = "No se encontraron pedidos con ese código o número de teléfono" });
+            }
+
+            return Ok(orders);
         }
 
         // GET: api/orders (Admin with optional status and search filters)
@@ -98,11 +133,15 @@ namespace FloreriaApi.Controllers
                 CustomerPhone = dto.CustomerPhone,
                 CustomerEmail = dto.CustomerEmail,
                 DeliveryAddress = dto.DeliveryAddress,
+                DeliveryMunicipality = !string.IsNullOrWhiteSpace(dto.DeliveryMunicipality) ? dto.DeliveryMunicipality : "Caldas",
+                DeliveryFee = dto.DeliveryFee,
                 DeliveryDate = dto.DeliveryDate,
                 DeliveryTime = dto.DeliveryTime,
-                CardMessage = dto.CardMessage,
-                SpecialNotes = dto.SpecialNotes,
-                TotalAmount = total,
+                CardStyle = !string.IsNullOrWhiteSpace(dto.CardStyle) ? dto.CardStyle : "Clásica Floral",
+                CardSender = dto.CardSender ?? string.Empty,
+                CardMessage = dto.CardMessage ?? string.Empty,
+                SpecialNotes = dto.SpecialNotes ?? string.Empty,
+                TotalAmount = total + dto.DeliveryFee,
                 Status = "Pendiente",
                 CreatedAt = DateTime.UtcNow,
                 Items = items
@@ -111,11 +150,15 @@ namespace FloreriaApi.Controllers
             _context.Orders.Add(order);
             await _context.SaveChangesAsync();
 
-            // Fire and forget email notifications so user response is fast
+            // Fetch SiteSettings for telegram / email configuration
+            var settings = await _context.SiteSettings.FirstOrDefaultAsync() ?? new SiteSettings();
+
+            // Fire and forget notifications so customer response is instant
             _ = Task.Run(async () =>
             {
                 try
                 {
+                    // 1. Email alerts
                     await _emailService.SendOrderNotificationToAdminAsync(order);
                     if (!string.IsNullOrWhiteSpace(order.CustomerEmail))
                     {
@@ -125,6 +168,16 @@ namespace FloreriaApi.Controllers
                 catch (Exception ex)
                 {
                     _logger.LogError(ex, "Failed to send order email for {Code}", order.OrderCode);
+                }
+
+                try
+                {
+                    // 2. Telegram & Webhook alerts
+                    await _telegramService.SendOrderNotificationAsync(order, settings);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Failed to send Telegram/Webhook alert for {Code}", order.OrderCode);
                 }
             });
 

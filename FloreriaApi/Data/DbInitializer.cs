@@ -1,4 +1,5 @@
 using FloreriaApi.Models;
+using Microsoft.EntityFrameworkCore;
 using System.Security.Cryptography;
 using System.Text;
 
@@ -9,6 +10,7 @@ namespace FloreriaApi.Data
         public static void Initialize(ApplicationDbContext context)
         {
             context.Database.EnsureCreated();
+            EnsureSchemaUpToDate(context);
 
             // Seed / Update Admin User
             var adminUser = context.AdminUsers.FirstOrDefault(u => u.Username == "admin");
@@ -46,6 +48,9 @@ namespace FloreriaApi.Data
                     ScheduleWeekends = "Domingos y Festivos: Cerrado",
                     GoogleMapsEmbedUrl = "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3967.0583547070116!2d-75.6378!3d6.0911!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x8e468307db4ef757%3A0x6b1c4e78a6ea23f0!2sCra.%2049%20%23131%20Sur-69%2C%20Caldas%2C%20Antioquia!5e0!3m2!1ses!2sco!4v1709000000000!5m2!1ses!2sco",
                     DeliveryNotes = "Entregas en Caldas, La Estrella, Sabaneta, Itagüí y Envigado.",
+                    HeroImageUrl = "/images/hero-floral.jpg",
+                    HeroTitle = "Arreglos florales hechos con pasión artesanal",
+                    HeroTag = "Colección Floral Antioquia",
                     UpdatedAt = DateTime.UtcNow
                 });
                 context.SaveChanges();
@@ -252,6 +257,35 @@ namespace FloreriaApi.Data
             using var sha256 = SHA256.Create();
             var bytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(password));
             return Convert.ToBase64String(bytes);
+        }
+
+        private static void EnsureSchemaUpToDate(ApplicationDbContext context)
+        {
+            var alterQueries = new[]
+            {
+                "ALTER TABLE Orders ADD COLUMN DeliveryMunicipality VARCHAR(100) NULL;",
+                "ALTER TABLE Orders ADD COLUMN DeliveryFee DECIMAL(18,2) NOT NULL DEFAULT 0;",
+                "ALTER TABLE Orders ADD COLUMN CardStyle VARCHAR(50) NULL;",
+                "ALTER TABLE Orders ADD COLUMN CardSender VARCHAR(100) NULL;",
+                "ALTER TABLE SiteSettings ADD COLUMN HeroImageUrl VARCHAR(500) NULL;",
+                "ALTER TABLE SiteSettings ADD COLUMN HeroTitle VARCHAR(200) NULL;",
+                "ALTER TABLE SiteSettings ADD COLUMN HeroTag VARCHAR(100) NULL;",
+                "ALTER TABLE SiteSettings ADD COLUMN TelegramBotToken VARCHAR(200) NULL;",
+                "ALTER TABLE SiteSettings ADD COLUMN TelegramChatId VARCHAR(100) NULL;",
+                "ALTER TABLE SiteSettings ADD COLUMN WebhookUrl VARCHAR(500) NULL;"
+            };
+
+            foreach (var query in alterQueries)
+            {
+                try
+                {
+                    context.Database.ExecuteSqlRaw(query);
+                }
+                catch
+                {
+                    // Ignored safely if column already exists or database dialect difference
+                }
+            }
         }
     }
 }

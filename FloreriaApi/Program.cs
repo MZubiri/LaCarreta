@@ -26,8 +26,10 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 
-// Email Service registration
+// Email & Notification Services registration
+builder.Services.AddHttpClient();
 builder.Services.AddScoped<IEmailService, EmailService>();
+builder.Services.AddScoped<ITelegramNotificationService, TelegramNotificationService>();
 
 // JWT Authentication Configuration
 var jwtKey = builder.Configuration["Jwt:Key"] ?? "FloreriaLaCarretaSuperSecretKey2026!AntioquiaCaldasDominioMolinazdev";

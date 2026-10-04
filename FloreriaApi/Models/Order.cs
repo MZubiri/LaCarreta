@@ -27,12 +27,24 @@ namespace FloreriaApi.Models
         [MaxLength(300)]
         public string DeliveryAddress { get; set; } = string.Empty;
 
+        [MaxLength(100)]
+        public string DeliveryMunicipality { get; set; } = "Caldas";
+
+        [Column(TypeName = "decimal(18,2)")]
+        public decimal DeliveryFee { get; set; } = 0;
+
         [Required]
         [MaxLength(50)]
         public string DeliveryDate { get; set; } = string.Empty;
 
         [MaxLength(50)]
         public string DeliveryTime { get; set; } = string.Empty;
+
+        [MaxLength(50)]
+        public string CardStyle { get; set; } = "Clásica Floral";
+
+        [MaxLength(100)]
+        public string CardSender { get; set; } = string.Empty;
 
         [MaxLength(500)]
         public string CardMessage { get; set; } = string.Empty;

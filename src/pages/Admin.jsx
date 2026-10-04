@@ -72,8 +72,16 @@ export const Admin = () => {
     scheduleWeekdays: 'Lunes a Sábado: 8:00 AM - 6:00 PM',
     scheduleWeekends: 'Domingos y Festivos: Cerrado',
     googleMapsEmbedUrl: '',
-    deliveryNotes: 'Entregas en Caldas, La Estrella, Sabaneta, Itagüí y Envigado.'
+    deliveryNotes: 'Entregas en Caldas, La Estrella, Sabaneta, Itagüí y Envigado.',
+    heroImageUrl: '/images/hero-floral.jpg',
+    heroTitle: 'Arreglos florales hechos con pasión artesanal',
+    heroTag: 'Colección Floral Antioquia',
+    telegramBotToken: '',
+    telegramChatId: '',
+    webhookUrl: ''
   });
+  const [uploadingHeroImage, setUploadingHeroImage] = useState(false);
+  const [testingTelegram, setTestingTelegram] = useState(false);
 
   // Password Change State
   const [passwordForm, setPasswordForm] = useState({
@@ -97,7 +105,13 @@ export const Admin = () => {
         scheduleWeekdays: settings.scheduleWeekdays || 'Lunes a Sábado: 8:00 AM - 6:00 PM',
         scheduleWeekends: settings.scheduleWeekends || 'Domingos y Festivos: Cerrado',
         googleMapsEmbedUrl: settings.googleMapsEmbedUrl || '',
-        deliveryNotes: settings.deliveryNotes || 'Entregas en Caldas, La Estrella, Sabaneta, Itagüí y Envigado.'
+        deliveryNotes: settings.deliveryNotes || 'Entregas en Caldas, La Estrella, Sabaneta, Itagüí y Envigado.',
+        heroImageUrl: settings.heroImageUrl || '/images/hero-floral.jpg',
+        heroTitle: settings.heroTitle || 'Arreglos florales hechos con pasión artesanal',
+        heroTag: settings.heroTag || 'Colección Floral Antioquia',
+        telegramBotToken: settings.telegramBotToken || '',
+        telegramChatId: settings.telegramChatId || '',
+        webhookUrl: settings.webhookUrl || ''
       });
     }
   }, [settings]);
@@ -311,9 +325,13 @@ export const Admin = () => {
       'Cliente',
       'Teléfono',
       'Email',
+      'Municipio',
+      'Tarifa Domicilio',
       'Dirección de Entrega',
       'Fecha Entrega',
       'Jornada',
+      'Estilo Tarjeta',
+      'Remitente Tarjeta',
       'Mensaje Tarjeta',
       'Total COP',
       'Estado'
@@ -325,9 +343,13 @@ export const Admin = () => {
       `"${(o.customerName || '').replace(/"/g, '""')}"`,
       `"${o.customerPhone || ''}"`,
       `"${o.customerEmail || ''}"`,
+      `"${(o.deliveryMunicipality || 'Caldas').replace(/"/g, '""')}"`,
+      o.deliveryFee || 0,
       `"${(o.deliveryAddress || '').replace(/"/g, '""')}"`,
       `"${o.deliveryDate || ''}"`,
       `"${o.deliveryTime || ''}"`,
+      `"${(o.cardStyle || 'clasica').replace(/"/g, '""')}"`,
+      `"${(o.cardSender || '').replace(/"/g, '""')}"`,
       `"${(o.cardMessage || '').replace(/"/g, '""')}"`,
       o.totalAmount || o.total || 0,
       `"${o.status || 'Pendiente'}"`
@@ -402,14 +424,64 @@ export const Admin = () => {
   };
 
   // ================= SETTINGS ACTIONS =================
+  const handleHeroImageUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingHeroImage(true);
+    try {
+      const res = await api.uploadImage(file);
+      if (res && res.url) {
+        setSettingsForm(prev => ({ ...prev, heroImageUrl: res.url }));
+        showNotification('Foto del Banner Hero subida correctamente');
+      }
+    } catch (err) {
+      alert(err.message || 'Error al subir la imagen del banner');
+    } finally {
+      setUploadingHeroImage(false);
+    }
+  };
+
   const handleSaveSettings = async (e) => {
-    e.preventDefault();
+    if (e && e.preventDefault) e.preventDefault();
     try {
       await updateSettings(settingsForm);
       await refreshSettings();
       showNotification('¡Ajustes del negocio guardados! Todos los datos se han actualizado en el sitio.');
     } catch (err) {
       alert(err.message || 'Error al guardar los ajustes');
+    }
+  };
+
+  const handleTestTelegram = async () => {
+    if (!settingsForm.telegramBotToken || !settingsForm.telegramChatId) {
+      alert('Por favor ingresa primero el Token del Bot y el Chat ID de Telegram en el formulario.');
+      return;
+    }
+    setTestingTelegram(true);
+    try {
+      const msg = `🌸 *¡Prueba de Notificación - Florería La Carreta!* 🌸\n\n` +
+                  `Tu bot de Telegram está correctamente configurado y listo para recibir alertas automáticas de cada nuevo pedido.\n\n` +
+                  `⏰ *Fecha de prueba:* ${new Date().toLocaleString('es-CO')}\n` +
+                  `📍 Florería La Carreta - Caldas, Antioquia`;
+      const res = await fetch(`https://api.telegram.org/bot${settingsForm.telegramBotToken}/sendMessage`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          chat_id: settingsForm.telegramChatId,
+          text: msg,
+          parse_mode: 'Markdown'
+        })
+      });
+      const data = await res.json();
+      if (data.ok) {
+        showNotification('¡Mensaje de prueba enviado exitosamente a tu Telegram!');
+      } else {
+        alert(`Error de Telegram: ${data.description || 'Token o Chat ID inválido'}`);
+      }
+    } catch (err) {
+      alert(`Error al conectar con Telegram: ${err.message}`);
+    } finally {
+      setTestingTelegram(false);
     }
   };
 
@@ -1143,8 +1215,16 @@ export const Admin = () => {
 
                       <div>
                         <h4 style={{ margin: '0 0 0.5rem 0', fontSize: '0.85rem', color: '#64748B', textTransform: 'uppercase' }}>Entrega</h4>
-                        <div style={{ fontSize: '0.9rem' }}>📍 {order.deliveryAddress}</div>
-                        <div style={{ fontSize: '0.9rem', color: '#475569', marginTop: '0.25rem' }}>
+                        <div style={{ fontSize: '0.9rem', fontWeight: 600, color: '#1E293B' }}>
+                          📍 {order.deliveryMunicipality || 'Caldas'}
+                          <span style={{ fontSize: '0.8rem', color: '#059669', fontWeight: 600, marginLeft: '0.4rem', backgroundColor: '#ECFDF5', padding: '0.15rem 0.4rem', borderRadius: '4px' }}>
+                            {order.deliveryFee > 0 ? `+${formatCOP(order.deliveryFee)} domicilio` : 'Envío Gratis / Recogida'}
+                          </span>
+                        </div>
+                        <div style={{ fontSize: '0.85rem', color: '#475569', marginTop: '0.25rem' }}>
+                          🏠 {order.deliveryAddress || 'Recoger en Florería'}
+                        </div>
+                        <div style={{ fontSize: '0.85rem', color: '#475569', marginTop: '0.25rem' }}>
                           ⏰ {order.deliveryDate} {order.deliveryTime ? `• ${order.deliveryTime}` : ''}
                         </div>
                         {order.specialNotes && (
@@ -1158,13 +1238,23 @@ export const Admin = () => {
                     {order.cardMessage && (
                       <div style={{
                         backgroundColor: '#FFFBEB',
-                        borderLeft: '4px solid #F59E0B',
+                        borderLeft: '4px solid #D4AF37',
                         padding: '0.75rem 1rem',
-                        borderRadius: '0 4px 4px 0',
+                        borderRadius: '0 6px 6px 0',
                         marginBottom: '1rem',
                         fontSize: '0.9rem'
                       }}>
-                        <strong>💌 Mensaje de la dedicatoria:</strong> <em>"{order.cardMessage}"</em>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+                          <span style={{ fontWeight: 700, color: '#92400E' }}>
+                            💌 Dedicatoria ({order.cardStyle ? order.cardStyle.toUpperCase() : 'CLÁSICA'})
+                          </span>
+                          {order.cardSender && (
+                            <span style={{ fontSize: '0.8rem', color: 'var(--color-burgundy)', fontWeight: 600, backgroundColor: '#FDF2F8', padding: '0.15rem 0.5rem', borderRadius: '4px' }}>
+                              De: {order.cardSender}
+                            </span>
+                          )}
+                        </div>
+                        <em style={{ color: '#1F2937', display: 'block', fontStyle: 'italic' }}>"{order.cardMessage}"</em>
                       </div>
                     )}
 
@@ -1183,18 +1273,28 @@ export const Admin = () => {
                       ) : (
                         <div style={{ fontSize: '0.85rem', color: '#666' }}>Detalle de productos guardado en descripción.</div>
                       )}
-                      <div style={{
-                        borderTop: '1px solid #E5E7EB',
-                        marginTop: '0.75rem',
-                        paddingTop: '0.75rem',
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        fontWeight: 700,
-                        fontSize: '1.05rem',
-                        color: 'var(--color-gold)'
-                      }}>
-                        <span>TOTAL:</span>
-                        <span>{formatCOP(total)}</span>
+
+                      <div style={{ borderTop: '1px solid #E5E7EB', marginTop: '0.75rem', paddingTop: '0.75rem', display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', color: '#64748B' }}>
+                          <span>Subtotal Arreglos:</span>
+                          <span>{formatCOP(Math.max(0, total - (order.deliveryFee || 0)))}</span>
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', color: '#64748B' }}>
+                          <span>Domicilio ({order.deliveryMunicipality || 'Caldas'}):</span>
+                          <span>{order.deliveryFee > 0 ? formatCOP(order.deliveryFee) : 'Gratis'}</span>
+                        </div>
+                        <div style={{
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          fontWeight: 700,
+                          fontSize: '1.05rem',
+                          color: 'var(--color-gold)',
+                          paddingTop: '0.4rem',
+                          borderTop: '1px dashed #E5E7EB'
+                        }}>
+                          <span>TOTAL PEDIDO:</span>
+                          <span>{formatCOP(total)}</span>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -1459,8 +1559,279 @@ export const Admin = () => {
             </form>
           </div>
 
-          {/* Change Password Card */}
+          {/* Change Password Card and Hero Settings Card */}
           <div>
+            {/* Hero Banner & Campaign Card */}
+            <div style={{ backgroundColor: '#FFF', border: '1px solid #E5E7EB', borderRadius: '8px', padding: '2rem', marginBottom: '2rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                <h3 style={{ fontSize: '1.4rem', margin: 0 }}>🎨 Banner Principal (Hero)</h3>
+                <span style={{ fontSize: '0.75rem', backgroundColor: '#FDF2F8', color: 'var(--color-burgundy)', padding: '0.2rem 0.6rem', borderRadius: '12px', fontWeight: 600 }}>
+                  Portada Web
+                </span>
+              </div>
+              <p style={{ color: '#666', fontSize: '0.85rem', marginBottom: '1.25rem' }}>
+                Personaliza la foto de portada, la etiqueta y el título principal que ven tus clientes al entrar a la tienda.
+              </p>
+
+              {/* Live Hero Preview Box */}
+              <div style={{
+                position: 'relative',
+                height: '180px',
+                borderRadius: '8px',
+                overflow: 'hidden',
+                backgroundImage: `url('${api.getImageUrl(settingsForm.heroImageUrl) || '/images/hero-floral.jpg'}')`,
+                backgroundSize: 'cover',
+                backgroundPosition: 'center',
+                marginBottom: '1.25rem',
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'flex-end',
+                padding: '1.2rem',
+                boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
+              }}>
+                <div style={{
+                  position: 'absolute',
+                  inset: 0,
+                  background: 'linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.35) 60%, rgba(0,0,0,0.1) 100%)'
+                }} />
+                <div style={{ position: 'relative', zIndex: 1 }}>
+                  <span style={{
+                    display: 'inline-block',
+                    fontSize: '0.7rem',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.1em',
+                    color: '#F9D5E5',
+                    fontWeight: 600,
+                    marginBottom: '0.25rem'
+                  }}>
+                    {settingsForm.heroTag || 'Colección Floral'}
+                  </span>
+                  <h4 style={{
+                    margin: 0,
+                    color: '#FFF',
+                    fontSize: '1.05rem',
+                    fontWeight: 600,
+                    lineHeight: 1.3,
+                    textShadow: '0 2px 4px rgba(0,0,0,0.5)'
+                  }}>
+                    {settingsForm.heroTitle || 'Arreglos florales hechos con pasión'}
+                  </h4>
+                </div>
+              </div>
+
+              {/* Upload Photo Button & Input */}
+              <div style={{ marginBottom: '1.25rem' }}>
+                <label style={{ fontSize: '0.85rem', fontWeight: 600, display: 'block', marginBottom: '0.3rem' }}>
+                  Foto de Portada
+                </label>
+                <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                  <label style={{
+                    flex: 1,
+                    padding: '0.65rem 1rem',
+                    backgroundColor: '#F3F4F6',
+                    border: '1px dashed #9CA3AF',
+                    borderRadius: '6px',
+                    textAlign: 'center',
+                    cursor: uploadingHeroImage ? 'not-allowed' : 'pointer',
+                    fontSize: '0.85rem',
+                    fontWeight: 500,
+                    color: '#374151',
+                    display: 'block'
+                  }}>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleHeroImageUpload}
+                      disabled={uploadingHeroImage}
+                      style={{ display: 'none' }}
+                    />
+                    {uploadingHeroImage ? '⏳ Subiendo foto...' : '📷 Subir foto desde tu dispositivo'}
+                  </label>
+                </div>
+                
+                <div style={{ marginTop: '0.6rem' }}>
+                  <input
+                    type="text"
+                    placeholder="O escribe la ruta / URL de la imagen..."
+                    value={settingsForm.heroImageUrl}
+                    onChange={(e) => setSettingsForm({ ...settingsForm, heroImageUrl: e.target.value })}
+                    className="luxury-input"
+                    style={{ width: '100%', fontSize: '0.8rem', padding: '0.5rem 0.75rem' }}
+                  />
+                </div>
+
+                {/* Quick Presets */}
+                <div style={{ marginTop: '0.75rem' }}>
+                  <span style={{ fontSize: '0.75rem', color: '#666', display: 'block', marginBottom: '0.3rem' }}>
+                    Fotos sugeridas de catálogo:
+                  </span>
+                  <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
+                    {[
+                      { label: '🌸 Floral Original', url: '/images/hero-floral.jpg' },
+                      { label: '🌹 Rosas Rojas', url: '/images/roses-bouquet.jpg' },
+                      { label: '🏺 Centro Rosas', url: '/images/centerpiece-pink.jpg' },
+                      { label: '❤️ Romance', url: '/images/occasion-love.jpg' },
+                      { label: '🎂 Celebración', url: '/images/occasion-birthday.jpg' }
+                    ].map(preset => (
+                      <button
+                        key={preset.url}
+                        type="button"
+                        onClick={() => setSettingsForm({ ...settingsForm, heroImageUrl: preset.url })}
+                        style={{
+                          padding: '0.25rem 0.5rem',
+                          fontSize: '0.72rem',
+                          borderRadius: '4px',
+                          border: settingsForm.heroImageUrl === preset.url ? '1px solid var(--color-burgundy)' : '1px solid #E5E7EB',
+                          backgroundColor: settingsForm.heroImageUrl === preset.url ? '#FDF2F8' : '#F9FAFB',
+                          color: settingsForm.heroImageUrl === preset.url ? 'var(--color-burgundy)' : '#4B5563',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        {preset.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Hero Tag & Title Inputs */}
+              <div style={{ marginBottom: '1rem' }}>
+                <label style={{ fontSize: '0.85rem', fontWeight: 600, display: 'block', marginBottom: '0.3rem' }}>
+                  Etiqueta Superior (Campaña / Ocasión)
+                </label>
+                <input
+                  type="text"
+                  placeholder="Ej. Especial Día de la Madre, Amor y Amistad, etc."
+                  value={settingsForm.heroTag}
+                  onChange={(e) => setSettingsForm({ ...settingsForm, heroTag: e.target.value })}
+                  className="luxury-input"
+                  style={{ width: '100%', fontSize: '0.85rem' }}
+                />
+              </div>
+
+              <div style={{ marginBottom: '1.25rem' }}>
+                <label style={{ fontSize: '0.85rem', fontWeight: 600, display: 'block', marginBottom: '0.3rem' }}>
+                  Título Principal de Portada
+                </label>
+                <input
+                  type="text"
+                  placeholder="Ej. Arreglos florales hechos con pasión artesanal"
+                  value={settingsForm.heroTitle}
+                  onChange={(e) => setSettingsForm({ ...settingsForm, heroTitle: e.target.value })}
+                  className="luxury-input"
+                  style={{ width: '100%', fontSize: '0.85rem' }}
+                />
+              </div>
+
+              <button
+                type="button"
+                onClick={handleSaveSettings}
+                className="btn-primary"
+                style={{ width: '100%', padding: '0.75rem', cursor: 'pointer', fontSize: '0.9rem' }}
+              >
+                ✨ Guardar Portada Web
+              </button>
+            </div>
+
+            {/* Instant Notifications Card (Telegram & Webhook) */}
+            <div style={{ backgroundColor: '#FFF', border: '1px solid #E5E7EB', borderRadius: '8px', padding: '2rem', marginBottom: '2rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                <h3 style={{ fontSize: '1.4rem', margin: 0 }}>⚡ Notificaciones de Pedidos</h3>
+                <span style={{ fontSize: '0.75rem', backgroundColor: '#E0F2FE', color: '#0369A1', padding: '0.2rem 0.6rem', borderRadius: '12px', fontWeight: 600 }}>
+                  Telegram & Webhook
+                </span>
+              </div>
+              <p style={{ color: '#666', fontSize: '0.85rem', marginBottom: '1.25rem' }}>
+                Recibe una alerta inmediata en tu celular o grupo de trabajo cada vez que entra un nuevo pedido con el detalle completo de entrega y dedicatoria.
+              </p>
+
+              <div style={{ backgroundColor: '#F0F9FF', border: '1px solid #BAE6FD', borderRadius: '6px', padding: '0.85rem 1rem', marginBottom: '1.25rem', fontSize: '0.8rem', color: '#0C4A6E', lineHeight: '1.5' }}>
+                <strong>💡 ¿Cómo conectar tu Bot de Telegram en 2 pasos?</strong>
+                <ol style={{ margin: '0.5rem 0 0 1rem', padding: 0 }}>
+                  <li>Abre Telegram y escribe a <code>@BotFather</code>. Crea tu bot con el comando <code>/newbot</code> y copia el <strong>Token</strong>.</li>
+                  <li>Inicia el bot o agrégalo a tu grupo. Luego consulta tu <strong>Chat ID</strong> con <code>@userinfobot</code>.</li>
+                </ol>
+              </div>
+
+              <div className="form-group" style={{ marginBottom: '1rem' }}>
+                <label style={{ fontSize: '0.85rem', fontWeight: 600, display: 'block', marginBottom: '0.3rem' }}>
+                  Telegram Bot Token
+                </label>
+                <input
+                  type="text"
+                  placeholder="Ej: 7123456789:AAHk...xyz"
+                  value={settingsForm.telegramBotToken}
+                  onChange={(e) => setSettingsForm({ ...settingsForm, telegramBotToken: e.target.value })}
+                  className="luxury-input"
+                  style={{ width: '100%', fontSize: '0.85rem' }}
+                />
+              </div>
+
+              <div className="form-group" style={{ marginBottom: '1.25rem' }}>
+                <label style={{ fontSize: '0.85rem', fontWeight: 600, display: 'block', marginBottom: '0.3rem' }}>
+                  Telegram Chat ID
+                </label>
+                <input
+                  type="text"
+                  placeholder="Ej: 123456789 (o grupo: -100123456789)"
+                  value={settingsForm.telegramChatId}
+                  onChange={(e) => setSettingsForm({ ...settingsForm, telegramChatId: e.target.value })}
+                  className="luxury-input"
+                  style={{ width: '100%', fontSize: '0.85rem' }}
+                />
+              </div>
+
+              <div className="form-group" style={{ marginBottom: '1.5rem' }}>
+                <label style={{ fontSize: '0.85rem', fontWeight: 600, display: 'block', marginBottom: '0.3rem' }}>
+                  Webhook URL (Opcional - WhatsApp / Zapier / Make / n8n)
+                </label>
+                <input
+                  type="url"
+                  placeholder="https://tu-endpoint-o-whatsapp-api.com/webhook"
+                  value={settingsForm.webhookUrl}
+                  onChange={(e) => setSettingsForm({ ...settingsForm, webhookUrl: e.target.value })}
+                  className="luxury-input"
+                  style={{ width: '100%', fontSize: '0.85rem' }}
+                />
+                <span style={{ fontSize: '0.75rem', color: '#666', display: 'block', marginTop: '0.25rem' }}>
+                  Dispara un POST JSON con los datos del pedido a tu servicio de mensajería o CRM externo.
+                </span>
+              </div>
+
+              <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+                <button
+                  type="button"
+                  onClick={handleTestTelegram}
+                  disabled={testingTelegram || !settingsForm.telegramBotToken || !settingsForm.telegramChatId}
+                  style={{
+                    flex: '1',
+                    minWidth: '150px',
+                    padding: '0.75rem 1rem',
+                    backgroundColor: '#0284C7',
+                    color: '#FFF',
+                    border: 'none',
+                    borderRadius: '6px',
+                    fontWeight: 600,
+                    fontSize: '0.85rem',
+                    cursor: (testingTelegram || !settingsForm.telegramBotToken || !settingsForm.telegramChatId) ? 'not-allowed' : 'pointer',
+                    opacity: (!settingsForm.telegramBotToken || !settingsForm.telegramChatId) ? 0.6 : 1
+                  }}
+                >
+                  {testingTelegram ? 'Enviando...' : '✈️ Probar Telegram'}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleSaveSettings}
+                  className="btn-primary"
+                  style={{ flex: '1', minWidth: '150px', padding: '0.75rem 1rem', fontSize: '0.85rem', cursor: 'pointer' }}
+                >
+                  💾 Guardar Alertas
+                </button>
+              </div>
+            </div>
+
+            {/* Change Password Card */}
             <div style={{ backgroundColor: '#FFF', border: '1px solid #E5E7EB', borderRadius: '8px', padding: '2rem', marginBottom: '2rem' }}>
               <h3 style={{ fontSize: '1.4rem', marginTop: 0, marginBottom: '0.5rem' }}>🔐 Seguridad de la Cuenta</h3>
               <p style={{ color: '#666', fontSize: '0.85rem', marginBottom: '1.5rem' }}>

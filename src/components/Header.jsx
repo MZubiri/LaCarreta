@@ -46,6 +46,9 @@ export const Header = ({ onOpenCart }) => {
           <NavLink to="/contacto" className={({ isActive }) => (isActive ? 'nav-link active' : 'nav-link')}>
             {t('nav.contact')}
           </NavLink>
+          <NavLink to="/rastreo" className={({ isActive }) => (isActive ? 'nav-link active' : 'nav-link')}>
+            {t('nav.tracking')}
+          </NavLink>
         </nav>
 
         <div className="header-actions">
@@ -89,6 +92,7 @@ export const Header = ({ onOpenCart }) => {
               <NavLink to="/catalogo" onClick={closeMenu}>{t('nav.catalog')}</NavLink>
               <NavLink to="/nosotros" onClick={closeMenu}>{t('nav.about')}</NavLink>
               <NavLink to="/contacto" onClick={closeMenu}>{t('nav.contact')}</NavLink>
+              <NavLink to="/rastreo" onClick={closeMenu}>{t('nav.tracking')}</NavLink>
               <button 
                 onClick={() => { closeMenu(); onOpenCart(); }} 
                 style={{ textAlign: 'left', background: 'none', border: 'none', padding: 0 }}

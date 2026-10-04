@@ -12,7 +12,13 @@ const defaultSettings = {
   scheduleWeekdays: "Lunes a Sábado: 8:00 AM - 6:00 PM",
   scheduleWeekends: "Domingos y Festivos: Cerrado",
   googleMapsEmbedUrl: "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3967.0583547070116!2d-75.6378!3d6.0911!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x8e468307db4ef757%3A0x6b1c4e78a6ea23f0!2sCra.%2049%20%23131%20Sur-69%2C%20Caldas%2C%20Antioquia!5e0!3m2!1ses!2sco!4v1709000000000!5m2!1ses!2sco",
-  deliveryNotes: "Entregas en Caldas, La Estrella, Sabaneta, Itagüí y Envigado."
+  deliveryNotes: "Entregas en Caldas, La Estrella, Sabaneta, Itagüí y Envigado.",
+  heroImageUrl: "/images/hero-floral.jpg",
+  heroTitle: "Arreglos florales hechos con pasión artesanal",
+  heroTag: "Colección Floral Antioquia",
+  telegramBotToken: "",
+  telegramChatId: "",
+  webhookUrl: ""
 };
 
 const SiteSettingsContext = createContext();
@@ -68,7 +74,13 @@ export const SiteSettingsProvider = ({ children }) => {
         scheduleWeekdays: settings.scheduleWeekdays,
         scheduleWeekends: settings.scheduleWeekends,
         mapsUrl: settings.googleMapsEmbedUrl,
-        deliveryNotes: settings.deliveryNotes
+        deliveryNotes: settings.deliveryNotes,
+        heroImageUrl: settings.heroImageUrl || defaultSettings.heroImageUrl,
+        heroTitle: settings.heroTitle || defaultSettings.heroTitle,
+        heroTag: settings.heroTag || defaultSettings.heroTag,
+        telegramBotToken: settings.telegramBotToken || '',
+        telegramChatId: settings.telegramChatId || '',
+        webhookUrl: settings.webhookUrl || ''
       }}
     >
       {children}
@@ -95,7 +107,13 @@ export const useSiteSettings = () => {
       scheduleWeekdays: defaultSettings.scheduleWeekdays,
       scheduleWeekends: defaultSettings.scheduleWeekends,
       mapsUrl: defaultSettings.googleMapsEmbedUrl,
-      deliveryNotes: defaultSettings.deliveryNotes
+      deliveryNotes: defaultSettings.deliveryNotes,
+      heroImageUrl: defaultSettings.heroImageUrl,
+      heroTitle: defaultSettings.heroTitle,
+      heroTag: defaultSettings.heroTag,
+      telegramBotToken: '',
+      telegramChatId: '',
+      webhookUrl: ''
     };
   }
   return context;

@@ -57,6 +57,12 @@ namespace FloreriaApi.Controllers
             settings.ScheduleWeekends = dto.ScheduleWeekends ?? settings.ScheduleWeekends;
             settings.GoogleMapsEmbedUrl = dto.GoogleMapsEmbedUrl ?? settings.GoogleMapsEmbedUrl;
             settings.DeliveryNotes = dto.DeliveryNotes ?? settings.DeliveryNotes;
+            if (!string.IsNullOrWhiteSpace(dto.HeroImageUrl)) settings.HeroImageUrl = dto.HeroImageUrl;
+            if (!string.IsNullOrWhiteSpace(dto.HeroTitle)) settings.HeroTitle = dto.HeroTitle;
+            if (!string.IsNullOrWhiteSpace(dto.HeroTag)) settings.HeroTag = dto.HeroTag;
+            if (dto.TelegramBotToken != null) settings.TelegramBotToken = dto.TelegramBotToken;
+            if (dto.TelegramChatId != null) settings.TelegramChatId = dto.TelegramChatId;
+            if (dto.WebhookUrl != null) settings.WebhookUrl = dto.WebhookUrl;
             settings.UpdatedAt = DateTime.UtcNow;
 
             await _context.SaveChangesAsync();

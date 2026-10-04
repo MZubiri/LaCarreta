@@ -24,30 +24,48 @@ export const generateWhatsAppLink = (cartItems, customerData, language = 'es', c
 
   message += isSpanish ? `*Detalles del pedido:*%0A` : `*Order Details:*%0A`;
 
-  let total = 0;
+  let subtotal = 0;
 
   cartItems.forEach(item => {
     const itemTotal = item.price * item.quantity;
-    total += itemTotal;
+    subtotal += itemTotal;
     const name = item[nameKey] || item.nameEs || item.name_es || 'Arreglo Floral';
     message += `- ${item.quantity}x ${name} (${formatCOP(item.price)} c/u) = ${formatCOP(itemTotal)}%0A`;
   });
 
-  message += `%0A*Total del Pedido:* ${formatCOP(total)}%0A%0A`;
+  const deliveryFee = Number(customerData.deliveryFee || 0);
+  const totalAmount = subtotal + deliveryFee;
 
-  message += isSpanish ? `*Datos de Entrega (Caldas / Antioquia):*%0A` : `*Delivery Details:*%0A`;
-  message += `${isSpanish ? 'Nombre' : 'Name'}: ${customerData.name}%0A`;
+  message += `%0A*Subtotal Arreglos:* ${formatCOP(subtotal)}%0A`;
+  message += `*Costo Domicilio (${customerData.municipality || 'Caldas'}):* ${deliveryFee > 0 ? formatCOP(deliveryFee) : (isSpanish ? '¡Gratis! (Recoger en tienda)' : 'Free (Pickup)')}%0A`;
+  message += `*💰 TOTAL A PAGAR:* ${formatCOP(totalAmount)}%0A%0A`;
+
+  message += isSpanish ? `*Datos de Entrega:*%0A` : `*Delivery Details:*%0A`;
+  message += `${isSpanish ? 'Destinatario' : 'Recipient'}: ${customerData.name}%0A`;
   message += `${isSpanish ? 'Teléfono' : 'Phone'}: ${customerData.phone}%0A`;
+  message += `${isSpanish ? 'Municipio' : 'Municipality'}: ${customerData.municipality || 'Caldas'}%0A`;
   message += `${isSpanish ? 'Dirección' : 'Address'}: ${customerData.address}%0A`;
   message += `${isSpanish ? 'Fecha deseada' : 'Desired date'}: ${customerData.date}%0A`;
-  message += `${isSpanish ? 'Jornada' : 'Time'}: ${customerData.time}%0A`;
+  message += `${isSpanish ? 'Jornada' : 'Time slot'}: ${customerData.time}%0A`;
+
+  if (customerData.cardStyle) {
+    message += `%0A*${isSpanish ? 'Estilo de Tarjeta' : 'Card Style'}:* ${customerData.cardStyle}%0A`;
+  }
+
+  if (customerData.cardSender) {
+    message += `*${isSpanish ? 'De parte de' : 'From'}:* ${customerData.cardSender}%0A`;
+  }
 
   if (customerData.message) {
-    message += `%0A*${isSpanish ? 'Mensaje para la tarjeta' : 'Card message'}:*%0A${customerData.message}%0A`;
+    message += `*${isSpanish ? 'Mensaje para la tarjeta' : 'Dedication message'}:*%0A"${customerData.message}"%0A`;
   }
 
   if (customerData.notes) {
-    message += `%0A*${isSpanish ? 'Notas especiales' : 'Special notes'}:*%0A${customerData.notes}%0A`;
+    message += `%0A*${isSpanish ? 'Indicaciones de entrega' : 'Delivery notes'}:*%0A${customerData.notes}%0A`;
+  }
+
+  if (customerData.orderCode) {
+    message += `%0A🔍 *${isSpanish ? 'Rastreo de pedido en línea' : 'Track online'}:*%0Ahttps://floreria.molinazdev.lat/rastreo?codigo=${customerData.orderCode}`;
   }
 
   return `https://wa.me/${phoneNumber}?text=${message}`;

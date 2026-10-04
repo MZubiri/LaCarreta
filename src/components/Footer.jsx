@@ -33,6 +33,7 @@ export const Footer = () => {
             <li><Link to="/catalogo">{t('nav.catalog')}</Link></li>
             <li><Link to="/nosotros">{t('nav.about')}</Link></li>
             <li><Link to="/contacto">{t('nav.contact')}</Link></li>
+            <li><Link to="/rastreo">{t('nav.tracking')}</Link></li>
             <li><Link to="/carrito">{t('nav.cart')}</Link></li>
           </ul>
         </div>
