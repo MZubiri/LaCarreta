@@ -95,15 +95,24 @@ export const TrackOrder = () => {
   const initialCode = searchParams.get('codigo') || searchParams.get('code') || '';
 
   const { getWhatsAppLink } = useSiteSettings();
-  const [query, setQuery] = useState(initialCode);
+  const [orderCode, setOrderCode] = useState(initialCode);
+  const [verifyInfo, setVerifyInfo] = useState(searchParams.get('tel') || searchParams.get('phone') || '');
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState('');
   const [searched, setSearched] = useState(false);
 
-  const fetchTrack = useCallback(async (searchQuery, isSilentRefresh = false) => {
-    if (!searchQuery || !searchQuery.trim()) return;
+  const fetchTrack = useCallback(async (codeToSearch, verifyToSearch, isSilentRefresh = false) => {
+    if (!codeToSearch || !codeToSearch.trim()) {
+      if (!isSilentRefresh) setError('Por favor ingresa el código del pedido.');
+      return;
+    }
+    if (!verifyToSearch || !verifyToSearch.trim()) {
+      if (!isSilentRefresh) setError('Por favor ingresa el teléfono o correo con el que realizaste la compra.');
+      return;
+    }
+
     if (isSilentRefresh) {
       setRefreshing(true);
     } else {
@@ -113,12 +122,12 @@ export const TrackOrder = () => {
     }
 
     try {
-      const results = await api.trackOrder(searchQuery.trim());
+      const results = await api.trackOrder(codeToSearch.trim(), verifyToSearch.trim());
       setOrders(results || []);
       setError('');
     } catch (err) {
       if (!isSilentRefresh) {
-        setError(err.message || 'No se encontró ningún pedido con ese código o teléfono.');
+        setError(err.message || 'No se encontró ningún pedido con esos datos de verificación.');
         setOrders([]);
       }
     } finally {
@@ -128,17 +137,19 @@ export const TrackOrder = () => {
   }, []);
 
   useEffect(() => {
-    if (initialCode) {
-      fetchTrack(initialCode);
+    const initVerify = searchParams.get('tel') || searchParams.get('phone') || '';
+    if (initialCode && initVerify) {
+      fetchTrack(initialCode, initVerify);
     }
-  }, [initialCode, fetchTrack]);
+  }, [initialCode, searchParams, fetchTrack]);
 
   // Real-time synchronization when orders are updated from Admin or local storage
   useEffect(() => {
     const handleOrdersUpdated = () => {
-      const currentQuery = query.trim() || initialCode.trim();
-      if (currentQuery) {
-        fetchTrack(currentQuery, true);
+      const curCode = orderCode.trim() || initialCode.trim();
+      const curVerify = verifyInfo.trim();
+      if (curCode && curVerify) {
+        fetchTrack(curCode, curVerify, true);
       }
     };
 
@@ -149,11 +160,11 @@ export const TrackOrder = () => {
       window.removeEventListener('floreria_orders_updated', handleOrdersUpdated);
       window.removeEventListener('storage', handleOrdersUpdated);
     };
-  }, [query, initialCode, fetchTrack]);
+  }, [orderCode, verifyInfo, initialCode, fetchTrack]);
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    fetchTrack(query);
+    fetchTrack(orderCode, verifyInfo);
   };
 
   const steps = [
@@ -176,25 +187,52 @@ export const TrackOrder = () => {
       </header>
 
       {/* Search Input Box */}
-      <div className="track-search-card">
-        <form onSubmit={handleSubmit} style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
-          <input
-            type="text"
-            required
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Ingresa tu código de pedido (ej. FLC-2026-0001) o teléfono..."
-            className="luxury-input"
-            style={{ flex: 1, minWidth: '0', fontSize: '0.95rem', padding: '0.85rem 1rem' }}
-          />
-          <button
-            type="submit"
-            disabled={loading}
-            className="btn-primary"
-            style={{ padding: '0.85rem 1.75rem', cursor: 'pointer', whiteSpace: 'nowrap' }}
-          >
-            {loading ? 'Consultando...' : '🔍 Rastrear'}
-          </button>
+      <div className="track-search-card" style={{ background: '#fff', borderRadius: '12px', padding: '1.5rem', boxShadow: '0 4px 20px rgba(0,0,0,0.06)', marginBottom: '2rem' }}>
+        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1rem' }}>
+            <div>
+              <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: '#444', marginBottom: '0.35rem' }}>
+                Código del Pedido *
+              </label>
+              <input
+                type="text"
+                required
+                value={orderCode}
+                onChange={(e) => setOrderCode(e.target.value)}
+                placeholder="Ej. FLC-2026-0001"
+                className="luxury-input"
+                style={{ width: '100%', fontSize: '0.95rem', padding: '0.8rem 1rem', border: '1px solid #ddd', borderRadius: '6px' }}
+              />
+            </div>
+            <div>
+              <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 600, color: '#444', marginBottom: '0.35rem' }}>
+                Teléfono o Correo de Verificación *
+              </label>
+              <input
+                type="text"
+                required
+                value={verifyInfo}
+                onChange={(e) => setVerifyInfo(e.target.value)}
+                placeholder="Teléfono o correo registrado..."
+                className="luxury-input"
+                style={{ width: '100%', fontSize: '0.95rem', padding: '0.8rem 1rem', border: '1px solid #ddd', borderRadius: '6px' }}
+              />
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.75rem', marginTop: '0.25rem' }}>
+            <span style={{ fontSize: '0.8rem', color: '#666', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+              🔒 <em>Por seguridad y privacidad, solo quien tenga el código y dato de compra puede consultar el pedido.</em>
+            </span>
+            <button
+              type="submit"
+              disabled={loading}
+              className="btn-primary"
+              style={{ padding: '0.85rem 2rem', cursor: 'pointer', whiteSpace: 'nowrap', borderRadius: '6px', fontWeight: 600 }}
+            >
+              {loading ? 'Consultando...' : '🔍 Rastrear Pedido'}
+            </button>
+          </div>
         </form>
       </div>
 

@@ -70,6 +70,8 @@ namespace FloreriaApi.Models
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
+        public bool IsDeleted { get; set; } = false;
+
         public List<OrderItem> Items { get; set; } = new List<OrderItem>();
     }
 }

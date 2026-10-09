@@ -390,12 +390,21 @@ export const api = {
     return await res.json();
   },
 
-  async trackOrder(query) {
-    const cleanQuery = (query || '').toLowerCase().trim();
-    const cleanPhone = (query || '').replace(/\D/g, '');
+  async trackOrder(orderCode, verifyInfo) {
+    const cleanCode = (orderCode || '').toLowerCase().trim();
+    const cleanVerify = (verifyInfo || '').toLowerCase().trim();
+    const cleanVerifyPhone = cleanVerify.replace(/\D/g, '');
+
+    if (!cleanCode) {
+      throw new Error("Por favor ingresa el código de tu pedido.");
+    }
+    if (!cleanVerify) {
+      throw new Error("Por seguridad y protección de datos, ingresa también el teléfono o correo registrado en la compra.");
+    }
 
     try {
-      const res = await fetch(`${API_BASE_URL}/orders/track/${encodeURIComponent(query)}`);
+      const url = `${API_BASE_URL}/orders/track?code=${encodeURIComponent(cleanCode)}&verify=${encodeURIComponent(cleanVerify)}`;
+      const res = await fetch(url);
       if (res.ok) {
         const data = await res.json();
         if (Array.isArray(data) && data.length > 0) {
@@ -428,55 +437,55 @@ export const api = {
             }
           });
           localStorage.setItem(LOCAL_ORDERS_KEY, JSON.stringify(orders));
+          return data;
+        }
+      } else {
+        const errJson = await res.json().catch(() => null);
+        if (errJson?.message) {
+          throw new Error(errJson.message);
         }
       }
     } catch (e) {
-      console.warn("API offline, searching local orders for tracking", e);
+      if (e.message && !e.message.includes('fetch')) {
+        throw e;
+      }
+      console.warn("API offline, searching local orders for secure tracking", e);
     }
 
     const saved = localStorage.getItem(LOCAL_ORDERS_KEY);
     const orders = saved ? JSON.parse(saved) : [];
 
     const found = orders.filter(o => {
+      if (o.isDeleted) return false;
       const orderCodeStr = (o.orderCode || '').toLowerCase();
       const legacyCodeStr = (o.legacyCode || '').toLowerCase();
       const idStr = String(o.id || '').toLowerCase();
 
-      // Normalize digits from code (e.g. FLC-2026-0001 -> 0001 or 20260001)
-      const cleanDigits = cleanQuery.replace(/\D/g, '');
-      const orderDigits = orderCodeStr.replace(/\D/g, '');
-      const legacyDigits = legacyCodeStr.replace(/\D/g, '');
-
       const matchesCode = 
-        orderCodeStr === cleanQuery ||
-        orderCodeStr.includes(cleanQuery) ||
-        cleanQuery.includes(orderCodeStr) ||
-        (legacyCodeStr && (legacyCodeStr === cleanQuery || legacyCodeStr.includes(cleanQuery) || cleanQuery.includes(legacyCodeStr))) ||
-        idStr === cleanQuery ||
-        (cleanDigits.length >= 2 && (
-          orderDigits.endsWith(cleanDigits) || 
-          cleanDigits.endsWith(orderDigits) ||
-          (legacyDigits && legacyDigits.includes(cleanDigits))
-        ));
+        orderCodeStr === cleanCode ||
+        orderCodeStr.endsWith(cleanCode) ||
+        cleanCode.endsWith(orderCodeStr) ||
+        legacyCodeStr === cleanCode ||
+        idStr === cleanCode;
+
+      if (!matchesCode) return false;
 
       const custPhone = (o.customerPhone || '').replace(/\D/g, '');
       const recipPhone = (o.recipientPhone || '').replace(/\D/g, '');
-      const matchesPhone = Boolean(cleanPhone && (
-        (custPhone && custPhone.includes(cleanPhone)) ||
-        (recipPhone && recipPhone.includes(cleanPhone))
+      const custEmail = (o.customerEmail || '').toLowerCase().trim();
+
+      const matchesPhone = Boolean(cleanVerifyPhone && cleanVerifyPhone.length >= 7 && (
+        custPhone.endsWith(cleanVerifyPhone) || cleanVerifyPhone.endsWith(custPhone) ||
+        recipPhone.endsWith(cleanVerifyPhone) || cleanVerifyPhone.endsWith(recipPhone)
       ));
 
-      const custName = (o.customerName || '').toLowerCase();
-      const recipName = (o.recipientName || '').toLowerCase();
-      const matchesName = Boolean(cleanQuery.length >= 3 && (
-        custName.includes(cleanQuery) || recipName.includes(cleanQuery)
-      ));
+      const matchesEmail = Boolean(cleanVerify.includes('@') && custEmail === cleanVerify);
 
-      return matchesCode || matchesPhone || matchesName;
+      return matchesPhone || matchesEmail;
     });
 
     if (found.length === 0) {
-      throw new Error("No encontramos ningún pedido con ese código o número de teléfono.");
+      throw new Error("No encontramos ningún pedido activo que coincida con ese código y dato de verificación (teléfono o correo).");
     }
     return found;
   },

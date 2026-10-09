@@ -118,6 +118,7 @@ export const ProductDetail = () => {
           />
         </div>
 
+        <div className="product-detail-info">
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap' }}>
             <span className="product-card-category">{(product?.category || '').toUpperCase()}</span>
             {product?.sku && (

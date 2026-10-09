@@ -29,42 +29,75 @@ namespace FloreriaApi.Controllers
             _logger = logger;
         }
 
-        // GET: api/orders/track/{query} (Public - Tracking by OrderCode or CustomerPhone)
-        [HttpGet("track/{query}")]
-        public async Task<ActionResult<IEnumerable<Order>>> TrackOrder(string query)
+        // GET: api/orders/track (Public - Tracking by OrderCode + Phone/Email verification)
+        [HttpGet("track")]
+        public async Task<ActionResult<IEnumerable<Order>>> TrackOrderWithParams([FromQuery] string? code = null, [FromQuery] string? verify = null)
         {
-            if (string.IsNullOrWhiteSpace(query))
+            return await ExecuteSecureTrack(code, verify);
+        }
+
+        // GET: api/orders/track/{query} (Public - Tracking by OrderCode + Phone/Email verification)
+        [HttpGet("track/{query}")]
+        public async Task<ActionResult<IEnumerable<Order>>> TrackOrder(string query, [FromQuery] string? verify = null)
+        {
+            return await ExecuteSecureTrack(query, verify);
+        }
+
+        private async Task<ActionResult<IEnumerable<Order>>> ExecuteSecureTrack(string? code, string? verify)
+        {
+            if (string.IsNullOrWhiteSpace(code))
             {
-                return BadRequest(new { message = "Por favor ingresa un código de pedido o número de teléfono" });
+                return BadRequest(new { message = "Por favor ingresa el código de tu pedido." });
             }
 
-            var cleanQuery = query.Trim().ToLower();
-            var cleanPhone = new string(query.Where(char.IsDigit).ToArray());
+            if (string.IsNullOrWhiteSpace(verify))
+            {
+                return BadRequest(new { message = "Por motivos de seguridad y protección de datos, debes ingresar también el número de teléfono o correo asociado al pedido." });
+            }
 
-            var orders = await _context.Orders
+            var cleanCode = code.Trim().ToLower();
+            var cleanVerify = verify.Trim().ToLower();
+            var cleanPhone = new string(cleanVerify.Where(char.IsDigit).ToArray());
+
+            var candidateOrders = await _context.Orders
                 .Include(o => o.Items)
-                .Where(o => 
-                    o.OrderCode.ToLower().Contains(cleanQuery) ||
-                    cleanQuery.Contains(o.OrderCode.ToLower()) ||
-                    (!string.IsNullOrEmpty(cleanPhone) && (
-                        o.CustomerPhone.Contains(cleanPhone) ||
-                        (o.RecipientPhone != null && o.RecipientPhone.Contains(cleanPhone)) ||
-                        o.OrderCode.Contains(cleanPhone)
-                    )) ||
-                    (cleanQuery.Length >= 3 && (
-                        o.CustomerName.ToLower().Contains(cleanQuery) ||
-                        (o.RecipientName != null && o.RecipientName.ToLower().Contains(cleanQuery))
-                    )))
-                .OrderByDescending(o => o.CreatedAt)
-                .Take(5)
+                .Where(o => !o.IsDeleted && (
+                    o.OrderCode.ToLower() == cleanCode ||
+                    cleanCode.EndsWith(o.OrderCode.ToLower()) ||
+                    o.OrderCode.ToLower().EndsWith(cleanCode) ||
+                    cleanCode.Replace("-", "").EndsWith(o.OrderCode.ToLower().Replace("-", ""))
+                ))
                 .ToListAsync();
 
-            if (!orders.Any())
+            if (!candidateOrders.Any())
             {
-                return NotFound(new { message = "No se encontraron pedidos con ese código o número de teléfono" });
+                return NotFound(new { message = "No se encontró ningún pedido con ese código." });
             }
 
-            return Ok(orders);
+            var verifiedOrders = candidateOrders.Where(o =>
+            {
+                var custPhone = new string((o.CustomerPhone ?? "").Where(char.IsDigit).ToArray());
+                var recipPhone = new string((o.RecipientPhone ?? "").Where(char.IsDigit).ToArray());
+                var custEmail = (o.CustomerEmail ?? "").Trim().ToLower();
+
+                bool phoneMatch = !string.IsNullOrEmpty(cleanPhone) && cleanPhone.Length >= 7 && (
+                    custPhone.EndsWith(cleanPhone) || cleanPhone.EndsWith(custPhone) ||
+                    recipPhone.EndsWith(cleanPhone) || cleanPhone.EndsWith(recipPhone)
+                );
+
+                bool emailMatch = !string.IsNullOrEmpty(cleanVerify) && cleanVerify.Contains("@") && (
+                    custEmail == cleanVerify
+                );
+
+                return phoneMatch || emailMatch;
+            }).ToList();
+
+            if (!verifiedOrders.Any())
+            {
+                return Unauthorized(new { message = "El teléfono o correo no coincide con el registrado en este pedido. Verifica tus datos por favor." });
+            }
+
+            return Ok(verifiedOrders);
         }
 
         // GET: api/orders (Admin with optional status and search filters)
@@ -72,7 +105,7 @@ namespace FloreriaApi.Controllers
         [HttpGet]
         public async Task<ActionResult<IEnumerable<Order>>> GetOrders([FromQuery] string? status = null, [FromQuery] string? search = null)
         {
-            var query = _context.Orders.Include(o => o.Items).AsQueryable();
+            var query = _context.Orders.Where(o => !o.IsDeleted).Include(o => o.Items).AsQueryable();
 
             if (!string.IsNullOrWhiteSpace(status) && status.ToLower() != "todos")
             {
@@ -100,7 +133,7 @@ namespace FloreriaApi.Controllers
         [HttpGet("{id}")]
         public async Task<ActionResult<Order>> GetOrder(int id)
         {
-            var order = await _context.Orders.Include(o => o.Items).FirstOrDefaultAsync(o => o.Id == id);
+            var order = await _context.Orders.Include(o => o.Items).FirstOrDefaultAsync(o => !o.IsDeleted && o.Id == id);
 
             if (order == null)
             {
