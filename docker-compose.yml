@@ -13,6 +13,11 @@ services:
       MYSQL_ROOT_HOST: "%"
     volumes:
       - mysql_data:/var/lib/mysql
+    networks:
+      default:
+      coolify:
+        aliases:
+          - floreria-mysql
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "${DB_USER:-floreria_user}", "-p${DB_PASSWORD:-FloreriaDbPass2026!Secure}"]
       interval: 10s
@@ -74,3 +79,8 @@ volumes:
     driver: local
   uploads_data:
     driver: local
+
+networks:
+  default:
+  coolify:
+    external: true
