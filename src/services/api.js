@@ -57,6 +57,18 @@ const defaultCategories = [
   { id: 6, slug: 'condolencias', nameEs: 'Condolencias', nameEn: 'Sympathy', icon: '🕊️', sortOrder: 5, isActive: true }
 ];
 
+// Helper to ensure order codes always adhere to the brand standard FLC-YYYY-XXXX
+const normalizeOrderCode = (code, createdAt, fallbackIndex = 1) => {
+  if (!code) {
+    const year = createdAt ? new Date(createdAt).getFullYear() : new Date().getFullYear();
+    return `FLC-${year}-${String(fallbackIndex).padStart(4, '0')}`;
+  }
+  if (code.startsWith('FLC-')) return code;
+  const yearMatch = code.match(/20\d{2}/);
+  const year = yearMatch ? yearMatch[0] : (createdAt ? new Date(createdAt).getFullYear() : new Date().getFullYear());
+  return `FLC-${year}-${String(fallbackIndex).padStart(4, '0')}`;
+};
+
 export const api = {
   // BASE URL EXPOSURE (for uploaded images)
   getBaseUrl() {
@@ -300,8 +312,28 @@ export const api = {
   },
 
   // ================= ORDERS =================
-  // ================= ORDERS =================
   async getOrders(filters = {}) {
+    const saved = localStorage.getItem(LOCAL_ORDERS_KEY);
+    let localOrders = saved ? JSON.parse(saved) : [];
+
+    // Self-heal any existing orders that were temporarily converted to ORD-
+    let hasLocalHealing = false;
+    localOrders = localOrders.map((ord, idx) => {
+      if (ord.orderCode && ord.orderCode.startsWith('ORD-')) {
+        hasLocalHealing = true;
+        const brandCode = normalizeOrderCode(ord.orderCode, ord.createdAt, ord.id || (idx + 1));
+        return {
+          ...ord,
+          legacyCode: ord.orderCode,
+          orderCode: brandCode
+        };
+      }
+      return ord;
+    });
+    if (hasLocalHealing) {
+      localStorage.setItem(LOCAL_ORDERS_KEY, JSON.stringify(localOrders));
+    }
+
     try {
       const params = new URLSearchParams();
       if (filters.status && filters.status !== 'todos') params.append('status', filters.status);
@@ -311,17 +343,45 @@ export const api = {
       const res = await fetch(url, { headers: getHeaders() });
       if (res.ok) {
         const data = await res.json();
-        // If retrieving full list, synchronize to local storage for offline resiliency
-        if (!filters.status && !filters.search && Array.isArray(data)) {
-          localStorage.setItem(LOCAL_ORDERS_KEY, JSON.stringify(data));
+        if (Array.isArray(data)) {
+          // Merge while strictly preserving and prioritizing FLC- brand order codes
+          const merged = data.map((remoteOrder, idx) => {
+            const localMatch = localOrders.find(l => 
+              l.id === remoteOrder.id || 
+              (remoteOrder.orderCode && (l.orderCode === remoteOrder.orderCode || l.legacyCode === remoteOrder.orderCode)) ||
+              (l.customerPhone && l.customerPhone === remoteOrder.customerPhone && Math.abs(new Date(l.createdAt) - new Date(remoteOrder.createdAt)) < 120000)
+            );
+
+            let brandCode = remoteOrder.orderCode;
+            let legacy = localMatch?.legacyCode || '';
+
+            if (localMatch?.orderCode?.startsWith('FLC-')) {
+              brandCode = localMatch.orderCode;
+              if (remoteOrder.orderCode !== brandCode) {
+                legacy = remoteOrder.orderCode;
+              }
+            } else if (remoteOrder.orderCode?.startsWith('ORD-')) {
+              legacy = remoteOrder.orderCode;
+              brandCode = normalizeOrderCode(remoteOrder.orderCode, remoteOrder.createdAt, remoteOrder.id || (idx + 1));
+            }
+
+            return {
+              ...remoteOrder,
+              orderCode: brandCode,
+              legacyCode: legacy
+            };
+          });
+
+          if (!filters.status && !filters.search) {
+            localStorage.setItem(LOCAL_ORDERS_KEY, JSON.stringify(merged));
+          }
+          return merged;
         }
-        return data;
       }
     } catch (e) {
       console.warn("API offline, returning fallback orders", e);
     }
-    const saved = localStorage.getItem(LOCAL_ORDERS_KEY);
-    return saved ? JSON.parse(saved) : [];
+    return localOrders;
   },
 
   async getOrder(id) {
@@ -339,19 +399,35 @@ export const api = {
       if (res.ok) {
         const data = await res.json();
         if (Array.isArray(data) && data.length > 0) {
-          // Merge with local storage
+          // Merge with local storage while protecting brand FLC- codes
           const saved = localStorage.getItem(LOCAL_ORDERS_KEY);
           const orders = saved ? JSON.parse(saved) : [];
-          data.forEach(remoteOrder => {
-            const idx = orders.findIndex(o => o.orderCode === remoteOrder.orderCode || o.id === remoteOrder.id);
-            if (idx !== -1) {
-              orders[idx] = { ...orders[idx], ...remoteOrder };
+          data.forEach((remoteOrder, idx) => {
+            const localIdx = orders.findIndex(o => 
+              o.orderCode === remoteOrder.orderCode || 
+              o.legacyCode === remoteOrder.orderCode || 
+              o.id === remoteOrder.id
+            );
+
+            let brandCode = remoteOrder.orderCode;
+            let legacy = remoteOrder.legacyCode || '';
+            if (orders[localIdx]?.orderCode?.startsWith('FLC-')) {
+              brandCode = orders[localIdx].orderCode;
+              if (remoteOrder.orderCode !== brandCode) legacy = remoteOrder.orderCode;
+            } else if (remoteOrder.orderCode?.startsWith('ORD-')) {
+              legacy = remoteOrder.orderCode;
+              brandCode = normalizeOrderCode(remoteOrder.orderCode, remoteOrder.createdAt, remoteOrder.id || (idx + 1));
+            }
+
+            const normalizedRemote = { ...remoteOrder, orderCode: brandCode, legacyCode: legacy };
+
+            if (localIdx !== -1) {
+              orders[localIdx] = { ...orders[localIdx], ...normalizedRemote };
             } else {
-              orders.unshift(remoteOrder);
+              orders.unshift(normalizedRemote);
             }
           });
           localStorage.setItem(LOCAL_ORDERS_KEY, JSON.stringify(orders));
-          return data;
         }
       }
     } catch (e) {
@@ -360,10 +436,28 @@ export const api = {
 
     const saved = localStorage.getItem(LOCAL_ORDERS_KEY);
     const orders = saved ? JSON.parse(saved) : [];
+
     const found = orders.filter(o => {
       const orderCodeStr = (o.orderCode || '').toLowerCase();
+      const legacyCodeStr = (o.legacyCode || '').toLowerCase();
       const idStr = String(o.id || '').toLowerCase();
-      const matchesCode = orderCodeStr.includes(cleanQuery) || idStr === cleanQuery;
+
+      // Normalize digits from code (e.g. FLC-2026-0001 -> 0001 or 20260001)
+      const cleanDigits = cleanQuery.replace(/\D/g, '');
+      const orderDigits = orderCodeStr.replace(/\D/g, '');
+      const legacyDigits = legacyCodeStr.replace(/\D/g, '');
+
+      const matchesCode = 
+        orderCodeStr === cleanQuery ||
+        orderCodeStr.includes(cleanQuery) ||
+        cleanQuery.includes(orderCodeStr) ||
+        (legacyCodeStr && (legacyCodeStr === cleanQuery || legacyCodeStr.includes(cleanQuery) || cleanQuery.includes(legacyCodeStr))) ||
+        idStr === cleanQuery ||
+        (cleanDigits.length >= 2 && (
+          orderDigits.endsWith(cleanDigits) || 
+          cleanDigits.endsWith(orderDigits) ||
+          (legacyDigits && legacyDigits.includes(cleanDigits))
+        ));
 
       const custPhone = (o.customerPhone || '').replace(/\D/g, '');
       const recipPhone = (o.recipientPhone || '').replace(/\D/g, '');
@@ -388,12 +482,22 @@ export const api = {
   },
 
   async createOrder(orderData) {
+    const saved = localStorage.getItem(LOCAL_ORDERS_KEY);
+    const orders = saved ? JSON.parse(saved) : [];
+    const currentYear = new Date().getFullYear();
+    const nextSeq = String(orders.length + 1).padStart(4, '0');
+    // Pre-generate the official FLC brand code
+    const brandOrderCode = orderData.orderCode || `FLC-${currentYear}-${nextSeq}`;
+
     let savedRemoteOrder = null;
     try {
       const res = await fetch(`${API_BASE_URL}/orders`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(orderData)
+        body: JSON.stringify({
+          ...orderData,
+          orderCode: brandOrderCode
+        })
       });
       if (res.ok) {
         savedRemoteOrder = await res.json();
@@ -402,16 +506,22 @@ export const api = {
       console.warn("API offline, saving order locally", e);
     }
 
-    const saved = localStorage.getItem(LOCAL_ORDERS_KEY);
-    const orders = saved ? JSON.parse(saved) : [];
-    const orderCode = savedRemoteOrder?.orderCode || `FLC-${new Date().getFullYear()}-${String(orders.length + 1).padStart(4, '0')}`;
+    // Ensure orderCode ALWAYS stays FLC- brand code format
+    const finalOrderCode = (savedRemoteOrder?.orderCode && savedRemoteOrder.orderCode.startsWith('FLC-'))
+      ? savedRemoteOrder.orderCode
+      : brandOrderCode;
+    const legacyCode = savedRemoteOrder?.orderCode && !savedRemoteOrder.orderCode.startsWith('FLC-')
+      ? savedRemoteOrder.orderCode
+      : '';
+
     const itemsTotal = (orderData.items || []).reduce((acc, i) => acc + (i.unitPrice * i.quantity), 0);
     const deliveryFee = Number(orderData.deliveryFee || 0);
 
     const newOrder = {
       ...orderData,
       id: savedRemoteOrder?.id || (orders.length + 1),
-      orderCode,
+      orderCode: finalOrderCode,
+      legacyCode,
       status: savedRemoteOrder?.status || 'Pendiente',
       customerName: orderData.customerName || '',
       customerPhone: orderData.customerPhone || '',
@@ -454,14 +564,18 @@ export const api = {
     const idx = orders.findIndex(o => 
       o.id === Number(id) || 
       String(o.id) === String(id) || 
-      (orderCode && o.orderCode === orderCode) || 
-      (String(id).startsWith('FLC-') && o.orderCode === id) ||
-      (String(id).startsWith('ORD-') && o.orderCode === id)
+      (orderCode && (o.orderCode === orderCode || o.legacyCode === orderCode)) || 
+      (String(id).startsWith('FLC-') && (o.orderCode === id || o.legacyCode === id)) ||
+      (String(id).startsWith('ORD-') && (o.orderCode === id || o.legacyCode === id))
     );
 
     if (idx !== -1) {
       orders[idx].status = status;
       orders[idx].updatedAt = new Date().toISOString();
+      // Ensure the order code never downgrades to ORD-
+      if (orderCode && orderCode.startsWith('FLC-')) {
+        orders[idx].orderCode = orderCode;
+      }
       localStorage.setItem(LOCAL_ORDERS_KEY, JSON.stringify(orders));
       if (typeof window !== 'undefined') {
         window.dispatchEvent(new Event('floreria_orders_updated'));

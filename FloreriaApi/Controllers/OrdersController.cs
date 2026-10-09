@@ -45,9 +45,11 @@ namespace FloreriaApi.Controllers
                 .Include(o => o.Items)
                 .Where(o => 
                     o.OrderCode.ToLower().Contains(cleanQuery) ||
+                    cleanQuery.Contains(o.OrderCode.ToLower()) ||
                     (!string.IsNullOrEmpty(cleanPhone) && (
                         o.CustomerPhone.Contains(cleanPhone) ||
-                        (o.RecipientPhone != null && o.RecipientPhone.Contains(cleanPhone))
+                        (o.RecipientPhone != null && o.RecipientPhone.Contains(cleanPhone)) ||
+                        o.OrderCode.Contains(cleanPhone)
                     )) ||
                     (cleanQuery.Length >= 3 && (
                         o.CustomerName.ToLower().Contains(cleanQuery) ||
@@ -117,7 +119,17 @@ namespace FloreriaApi.Controllers
                 return BadRequest(new { message = "El pedido no contiene ningún producto" });
             }
 
-            var orderCode = "ORD-" + DateTime.UtcNow.ToString("yyyyMMdd-HHmmss");
+            string orderCode;
+            if (!string.IsNullOrWhiteSpace(dto.OrderCode))
+            {
+                orderCode = dto.OrderCode.Trim().ToUpperInvariant();
+            }
+            else
+            {
+                var year = DateTime.UtcNow.Year;
+                var count = await _context.Orders.CountAsync() + 1;
+                orderCode = $"FLC-{year}-{count:D4}";
+            }
             decimal total = 0;
 
             var items = new List<OrderItem>();

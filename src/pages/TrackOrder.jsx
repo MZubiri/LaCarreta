@@ -11,6 +11,7 @@ export const getStatusInfo = (rawStatus = '') => {
   if (s.includes('cancelad') || s.includes('anulad')) {
     return {
       step: -1,
+      percentage: 100,
       key: 'Cancelado',
       label: 'Pedido Cancelado',
       badgeText: 'Cancelado',
@@ -25,6 +26,7 @@ export const getStatusInfo = (rawStatus = '') => {
   if (s.includes('entregad') || s.includes('completad') || s.includes('finalizad')) {
     return {
       step: 4,
+      percentage: 100,
       key: 'Entregado',
       label: 'Entregado con Éxito',
       badgeText: 'Entregado',
@@ -39,6 +41,7 @@ export const getStatusInfo = (rawStatus = '') => {
   if (s.includes('camin') || s.includes('ruta') || s.includes('viaj') || s.includes('despachad')) {
     return {
       step: 3,
+      percentage: 75,
       key: 'EnCamino',
       label: 'En Camino',
       badgeText: 'En Camino',
@@ -60,6 +63,7 @@ export const getStatusInfo = (rawStatus = '') => {
   ) {
     return {
       step: 2,
+      percentage: 50,
       key: 'EnPreparacion',
       label: 'En Preparación Floral',
       badgeText: 'En Preparación',
@@ -74,6 +78,7 @@ export const getStatusInfo = (rawStatus = '') => {
   // Default: Pendiente / Recibido
   return {
     step: 1,
+    percentage: 25,
     key: 'Pendiente',
     label: 'Pedido Recibido',
     badgeText: 'Recibido',
@@ -219,6 +224,7 @@ export const TrackOrder = () => {
             const statusInfo = getStatusInfo(order.status);
             const currentStep = statusInfo.step;
             const isCancelled = currentStep === -1;
+            const progressPercentage = statusInfo.percentage;
 
             // Recipient & customer resolution with backwards compatibility
             const recipientName = order.recipientName || order.customerName || 'Destinatario';
@@ -247,8 +253,13 @@ export const TrackOrder = () => {
                       Código de Pedido
                     </span>
                     <h3 style={{ margin: '0.2rem 0 0 0', fontSize: '1.5rem', color: 'var(--color-burgundy)', fontFamily: 'monospace' }}>
-                      {order.orderCode || `PED-${order.id}`}
+                      {order.orderCode || `FLC-2026-${String(order.id).padStart(4, '0')}`}
                     </h3>
+                    {order.legacyCode && order.legacyCode !== order.orderCode && (
+                      <span style={{ fontSize: '0.75rem', color: '#9CA3AF', display: 'block', marginTop: '0.2rem' }}>
+                        Ref. sistema: {order.legacyCode}
+                      </span>
+                    )}
                   </div>
 
                   <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.35rem' }}>
@@ -298,6 +309,170 @@ export const TrackOrder = () => {
                   </div>
                 </div>
 
+                {/* ================= BARRA DE PROGRESIÓN DESTACADA ================= */}
+                {!isCancelled && (
+                  <div style={{
+                    backgroundColor: '#FAF5F5',
+                    border: '1px solid #F0DEDE',
+                    borderRadius: '12px',
+                    padding: '1.5rem',
+                    marginBottom: '1.75rem',
+                    boxShadow: '0 4px 15px rgba(0,0,0,0.03)'
+                  }}>
+                    {/* Encabezado del Progreso con Porcentaje */}
+                    <div style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      marginBottom: '0.85rem',
+                      flexWrap: 'wrap',
+                      gap: '0.75rem'
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                        <span style={{ fontSize: '1.35rem' }}>{statusInfo.icon}</span>
+                        <div>
+                          <h4 style={{ margin: 0, fontSize: '1.05rem', color: 'var(--color-burgundy)', fontWeight: 700 }}>
+                            Progreso del Pedido: {progressPercentage}%
+                          </h4>
+                          <span style={{ fontSize: '0.83rem', color: '#6B7280', fontWeight: 500 }}>
+                            Fase actual: <strong style={{ color: statusInfo.color }}>{statusInfo.label}</strong>
+                          </span>
+                        </div>
+                      </div>
+
+                      <div>
+                        <span style={{
+                          display: 'inline-block',
+                          fontSize: '0.8rem',
+                          fontWeight: 700,
+                          padding: '0.3rem 0.85rem',
+                          borderRadius: '20px',
+                          backgroundColor: currentStep === 4 ? '#D1FAE5' : '#FFF0F5',
+                          color: currentStep === 4 ? '#065F46' : 'var(--color-burgundy)',
+                          border: currentStep === 4 ? '1px solid #A7F3D0' : '1px solid #FBCFE8'
+                        }}>
+                          {currentStep === 4 ? '🎉 Pedido Entregado' : `Paso ${currentStep} de 4`}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Barra de Progresión Visual con Gradiente */}
+                    <div style={{
+                      width: '100%',
+                      height: '16px',
+                      backgroundColor: '#E5E7EB',
+                      borderRadius: '20px',
+                      overflow: 'hidden',
+                      position: 'relative',
+                      boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.06)',
+                      marginBottom: '0.6rem'
+                    }}>
+                      <div
+                        style={{
+                          height: '100%',
+                          width: `${progressPercentage}%`,
+                          background: currentStep === 4
+                            ? 'linear-gradient(90deg, #10B981, #059669)'
+                            : 'linear-gradient(90deg, var(--color-burgundy) 0%, #C2185B 60%, var(--color-gold) 100%)',
+                          borderRadius: '20px',
+                          transition: 'width 0.8s cubic-bezier(0.4, 0, 0.2, 1)',
+                          boxShadow: '0 2px 8px rgba(123, 20, 60, 0.35)'
+                        }}
+                      />
+                    </div>
+
+                    {/* Marcadores de porcentaje bajo la barra */}
+                    <div style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      fontSize: '0.74rem',
+                      fontWeight: 600,
+                      marginBottom: '1.5rem',
+                      padding: '0 0.2rem'
+                    }}>
+                      <span style={{ color: currentStep >= 1 ? 'var(--color-burgundy)' : '#9CA3AF' }}>25% Recibido</span>
+                      <span style={{ color: currentStep >= 2 ? 'var(--color-burgundy)' : '#9CA3AF' }}>50% En Preparación</span>
+                      <span style={{ color: currentStep >= 3 ? 'var(--color-burgundy)' : '#9CA3AF' }}>75% En Camino</span>
+                      <span style={{ color: currentStep >= 4 ? '#065F46' : '#9CA3AF' }}>100% Entregado</span>
+                    </div>
+
+                    {/* 4 Nodos del Stepper con Checkpoints */}
+                    <div style={{
+                      display: 'grid',
+                      gridTemplateColumns: 'repeat(4, 1fr)',
+                      gap: '0.6rem',
+                      textAlign: 'center'
+                    }}>
+                      {steps.map((st) => {
+                        const isDone = currentStep >= st.num;
+                        const isCurrent = currentStep === st.num;
+
+                        return (
+                          <div
+                            key={st.num}
+                            style={{
+                              backgroundColor: isCurrent ? '#FFFFFF' : (isDone ? '#FDF8F8' : 'rgba(255,255,255,0.6)'),
+                              border: isCurrent
+                                ? '2px solid var(--color-burgundy)'
+                                : (isDone ? '1px solid #E8D5D5' : '1px dashed #E5E7EB'),
+                              borderRadius: '10px',
+                              padding: '0.75rem 0.4rem',
+                              boxShadow: isCurrent ? '0 4px 12px rgba(123,20,60,0.1)' : 'none',
+                              transition: 'all 0.3s ease'
+                            }}
+                          >
+                            <div style={{
+                              width: '36px',
+                              height: '36px',
+                              borderRadius: '50%',
+                              backgroundColor: isCurrent
+                                ? 'var(--color-burgundy)'
+                                : (isDone ? '#D1FAE5' : '#F3F4F6'),
+                              color: isCurrent
+                                ? '#FFFFFF'
+                                : (isDone ? '#065F46' : '#9CA3AF'),
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              margin: '0 auto 0.45rem auto',
+                              fontSize: '1.05rem',
+                              fontWeight: 700
+                            }}>
+                              {isDone && !isCurrent ? '✓' : st.icon}
+                            </div>
+
+                            <h5 style={{
+                              fontSize: '0.8rem',
+                              margin: '0 0 0.15rem 0',
+                              color: isCurrent ? 'var(--color-burgundy)' : (isDone ? '#1F2937' : '#9CA3AF'),
+                              fontWeight: isCurrent ? 700 : (isDone ? 600 : 500)
+                            }}>
+                              {st.title}
+                            </h5>
+
+                            <span style={{
+                              fontSize: '0.68rem',
+                              fontWeight: 600,
+                              display: 'inline-block',
+                              padding: '0.1rem 0.35rem',
+                              borderRadius: '10px',
+                              marginTop: '0.15rem',
+                              backgroundColor: isCurrent
+                                ? '#FCE7F3'
+                                : (isDone ? '#ECFDF5' : '#F3F4F6'),
+                              color: isCurrent
+                                ? 'var(--color-burgundy)'
+                                : (isDone ? '#065F46' : '#9CA3AF')
+                            }}>
+                              {isCurrent ? 'En curso' : (isDone ? 'Completado' : 'Pendiente')}
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
                 {/* Status Explanation Banner */}
                 <div style={{
                   backgroundColor: statusInfo.bg,
@@ -315,91 +490,11 @@ export const TrackOrder = () => {
                   <span style={{ fontSize: '1.4rem' }}>{statusInfo.icon}</span>
                   <div>
                     <strong style={{ display: 'block', marginBottom: '0.15rem' }}>
-                      Estado actual: {statusInfo.label}
+                      Detalle de estado: {statusInfo.label}
                     </strong>
                     <span>{statusInfo.message}</span>
                   </div>
                 </div>
-
-                {/* Progress Stepper Bar with Connecting Rail (if not cancelled) */}
-                {!isCancelled && (
-                  <div style={{ marginBottom: '2.5rem', position: 'relative' }}>
-                    {/* Background Progress Rail */}
-                    <div style={{
-                      position: 'absolute',
-                      top: '23px',
-                      left: '12.5%',
-                      right: '12.5%',
-                      height: '4px',
-                      backgroundColor: '#E5E7EB',
-                      zIndex: 1,
-                      borderRadius: '2px'
-                    }}>
-                      {/* Active Progress Fill */}
-                      <div style={{
-                        height: '100%',
-                        backgroundColor: 'var(--color-burgundy)',
-                        borderRadius: '2px',
-                        transition: 'width 0.4s ease',
-                        width: `${Math.min(100, Math.max(0, ((currentStep - 1) / 3) * 100))}%`
-                      }} />
-                    </div>
-
-                    <div style={{
-                      display: 'grid',
-                      gridTemplateColumns: 'repeat(4, 1fr)',
-                      position: 'relative',
-                      gap: '0.5rem',
-                      textAlign: 'center',
-                      zIndex: 2
-                    }}>
-                      {steps.map((st) => {
-                        const isDone = currentStep >= st.num;
-                        const isCurrent = currentStep === st.num;
-
-                        return (
-                          <div key={st.num} style={{ position: 'relative' }}>
-                            {/* Circle Node */}
-                            <div style={{
-                              width: '46px',
-                              height: '46px',
-                              borderRadius: '50%',
-                              backgroundColor: isDone ? 'var(--color-burgundy)' : '#FFFFFF',
-                              color: isDone ? '#FFF' : '#9CA3AF',
-                              border: isCurrent
-                                ? '3px solid var(--color-gold)'
-                                : isDone
-                                ? '2px solid var(--color-burgundy)'
-                                : '2px solid #D1D5DB',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              margin: '0 auto 0.6rem auto',
-                              fontSize: '1.2rem',
-                              boxShadow: isCurrent ? '0 0 0 4px rgba(123, 20, 60, 0.2)' : '0 2px 4px rgba(0,0,0,0.04)',
-                              transition: 'all 0.3s ease'
-                            }}>
-                              {st.icon}
-                            </div>
-
-                            {/* Label */}
-                            <h4 style={{
-                              fontSize: '0.85rem',
-                              margin: '0 0 0.15rem 0',
-                              color: isDone ? 'var(--color-burgundy)' : '#9CA3AF',
-                              fontWeight: isCurrent ? 700 : 500
-                            }}>
-                              {st.title}
-                            </h4>
-                            <span style={{ fontSize: '0.72rem', color: '#888', display: 'block' }}>
-                              {st.desc}
-                            </span>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
 
                 {/* Delivery & People Information Grid */}
                 <div className="track-delivery-grid">
@@ -560,7 +655,7 @@ export const TrackOrder = () => {
           <span style={{ fontSize: '2.5rem', display: 'block', marginBottom: '0.75rem' }}>📍</span>
           <h3 style={{ fontSize: '1.25rem', marginBottom: '0.5rem', color: 'var(--color-burgundy)' }}>¿Dónde encuentro mi código de pedido?</h3>
           <p style={{ color: '#666', fontSize: '0.9rem', lineHeight: 1.6, maxWidth: '500px', margin: '0 auto 1.5rem auto' }}>
-            Al finalizar tu compra te entregamos un código como <strong>FLC-2026-0001</strong> o <strong>ORD-...</strong>. También puedes rastrearlo ingresando el mismo número de teléfono que registraste al comprar o el del destinatario.
+            Al finalizar tu compra te entregamos un código como <strong>FLC-2026-0001</strong>. También puedes rastrearlo ingresando el mismo número de teléfono que registraste al comprar o el del destinatario.
           </p>
           <Link to="/catalogo" className="btn-primary" style={{ display: 'inline-block', maxWidth: '220px' }}>
             Explorar Catálogo

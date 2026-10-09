@@ -283,6 +283,23 @@ namespace FloreriaApi.Data
                     // Ignored safely if column already exists or database dialect difference
                 }
             }
+
+            try
+            {
+                var legacyOrders = context.Orders.Where(o => o.OrderCode.StartsWith("ORD-")).ToList();
+                foreach (var ord in legacyOrders)
+                {
+                    ord.OrderCode = $"FLC-{ord.CreatedAt.Year}-{ord.Id:D4}";
+                }
+                if (legacyOrders.Any())
+                {
+                    context.SaveChanges();
+                }
+            }
+            catch
+            {
+                // Ignored safely
+            }
         }
     }
 }

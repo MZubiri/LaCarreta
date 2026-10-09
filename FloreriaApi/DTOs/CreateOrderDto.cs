@@ -2,6 +2,7 @@ namespace FloreriaApi.DTOs
 {
     public class CreateOrderDto
     {
+        public string OrderCode { get; set; } = string.Empty;
         public string CustomerName { get; set; } = string.Empty;
         public string CustomerPhone { get; set; } = string.Empty;
         public string CustomerEmail { get; set; } = string.Empty;

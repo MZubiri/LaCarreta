@@ -1243,7 +1243,14 @@ export const Admin = () => {
                   }}>
                     <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #F3F4F6', paddingBottom: '1rem', marginBottom: '1rem', gap: '1rem' }}>
                       <div>
-                        <span style={{ fontWeight: 700, fontSize: '1.1rem', color: '#1E293B' }}>{order.orderCode || `ORD-${order.id}`}</span>
+                        <span style={{ fontWeight: 700, fontSize: '1.1rem', color: '#1E293B' }}>
+                          {order.orderCode || `FLC-2026-${String(order.id).padStart(4, '0')}`}
+                        </span>
+                        {order.legacyCode && order.legacyCode !== order.orderCode && (
+                          <span style={{ fontSize: '0.75rem', color: '#94A3B8', marginLeft: '0.5rem' }}>
+                            ({order.legacyCode})
+                          </span>
+                        )}
                         <span style={{ fontSize: '0.85rem', color: '#64748B', marginLeft: '0.75rem' }}>
                           📅 {new Date(order.createdAt).toLocaleString('es-CO')}
                         </span>
