@@ -26,11 +26,6 @@ namespace FloreriaApi.Data
                 });
                 context.SaveChanges();
             }
-            else if (adminUser.PasswordHash != adminPasswordHash)
-            {
-                adminUser.PasswordHash = adminPasswordHash;
-                context.SaveChanges();
-            }
 
             // Seed Site Settings
             if (!context.SiteSettings.Any())

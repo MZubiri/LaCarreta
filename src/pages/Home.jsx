@@ -92,12 +92,13 @@ export const Home = ({ onOpenCart }) => {
   ];
 
   const coverageMunicipalities = [
-    'Caldas',
-    'La Estrella',
-    'Sabaneta',
+    'Medellín',
+    'El Poblado',
+    'Laureles',
+    'Belén',
     'Envigado',
-    'Itagüí',
-    'Medellín Sur'
+    'Sabaneta',
+    'Itagüí'
   ];
 
   return (
@@ -202,29 +203,31 @@ export const Home = ({ onOpenCart }) => {
       </section>
 
       {/* Featured Products */}
-      <section className="section container">
-        <div className="section-header">
-          <span className="section-tag">{t('home.curated')}</span>
-          <h2 className="section-title">{t('home.featuredTitle')}</h2>
-          <p className="section-desc">{t('home.featuredSubtitle')}</p>
-        </div>
+      <section className="section">
+        <div className="container">
+          <div className="section-header">
+            <span className="section-tag">{t('home.curated')}</span>
+            <h2 className="section-title">{t('home.featuredTitle')}</h2>
+            <p className="section-desc">{t('home.featuredSubtitle')}</p>
+          </div>
 
-        <div className="product-grid">
-          {featuredProducts.map((product) => (
-            <ProductCard
-              key={product.id}
-              product={product}
-              onAddToCart={handleShowToast}
-              onQuickView={(prod) => setSelectedProduct(prod)}
-            />
-          ))}
-        </div>
+          <div className="product-grid">
+            {featuredProducts.map((product) => (
+              <ProductCard
+                key={product.id}
+                product={product}
+                onAddToCart={handleShowToast}
+                onQuickView={(prod) => setSelectedProduct(prod)}
+              />
+            ))}
+          </div>
 
-        <div className="text-center" style={{ marginTop: '3.5rem' }}>
-          <Link to="/catalogo" className="btn-secondary btn-with-icon">
-            <span>{t('home.viewAllCatalog')}</span>
-            <IconArrowRight size={16} />
-          </Link>
+          <div className="text-center" style={{ marginTop: '3.5rem' }}>
+            <Link to="/catalogo" className="btn-secondary btn-with-icon">
+              <span>{t('home.viewAllCatalog')}</span>
+              <IconArrowRight size={16} />
+            </Link>
+          </div>
         </div>
       </section>
 
@@ -265,14 +268,14 @@ export const Home = ({ onOpenCart }) => {
           <div className="story-image-wrap">
             <img 
               src="/images/artisan-florist.jpg" 
-              alt="Florista artesanal de La Carreta en Caldas" 
+              alt="Florista artesanal de La Carreta en Medellín" 
               className="story-image" 
               loading="lazy" 
               onError={(e) => { e.target.src = '/images/hero-floral.jpg'; }}
             />
             <div className="story-badge-floating">
-              <span className="story-badge-year">Desde Caldas</span>
-              <span className="story-badge-sub">Antioquia</span>
+              <span className="story-badge-year">Florería</span>
+              <span className="story-badge-sub">Medellín</span>
             </div>
           </div>
           <div className="story-content">
@@ -284,7 +287,7 @@ export const Home = ({ onOpenCart }) => {
             <div className="story-quote">
               <div className="story-quote-mark">“</div>
               <p className="story-quote-text">{t('home.quote')}</p>
-              <span className="story-quote-author">— La Familia La Carreta, Caldas</span>
+              <span className="story-quote-author">— La Familia La Carreta</span>
             </div>
             <Link to="/nosotros" className="btn-primary btn-with-icon" style={{ marginTop: '2rem', display: 'inline-flex' }}>
               <span>{t('home.readMore')}</span>
@@ -304,7 +307,7 @@ export const Home = ({ onOpenCart }) => {
               </div>
               <div className="delivery-text-content">
                 <span className="delivery-tag">Cobertura Garantizada</span>
-                <h3 className="delivery-title">Envíos directos en Caldas y el Sur del Valle de Aburrá</h3>
+                <h3 className="delivery-title">Envíos a domicilio en todo Medellín</h3>
                 <p className="delivery-desc">
                   Entregamos arreglos florales frescos, confeccionados el mismo día, con transporte especializado y cuidado absoluto.
                 </p>

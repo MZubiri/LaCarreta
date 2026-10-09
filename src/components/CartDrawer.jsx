@@ -33,13 +33,35 @@ export const CartDrawer = ({ isOpen, onClose }) => {
             </div>
           ) : (
             items.map((item) => {
-              const name = language === 'en' ? item.name_en : item.name_es;
+              const name = language === 'en'
+                ? (item.name_en || item.nameEn || item.name_es || item.nameEs || item.name || 'Floral Arrangement')
+                : (item.name_es || item.nameEs || item.name_en || item.nameEn || item.name || 'Arreglo Floral');
+              const imageSrc = item.image?.startsWith('http') || item.image?.startsWith('/uploads') || item.image?.startsWith('/images')
+                ? item.image 
+                : '/images/roses-bouquet.jpg';
+              const unitPrice = Number(item.price) || 0;
+              const itemTotal = unitPrice * item.quantity;
+
               return (
                 <div key={item.id} className="drawer-item">
-                  <img src={item.image} alt={name} className="drawer-item-img" />
+                  <img 
+                    src={imageSrc} 
+                    alt={name} 
+                    className="drawer-item-img"
+                    onError={(e) => { e.target.src = '/images/roses-bouquet.jpg'; }}
+                  />
                   <div className="drawer-item-info">
                     <h4 className="drawer-item-title">{name}</h4>
-                    <span className="drawer-item-price">{formatCOP(item.price)}</span>
+                    <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px', marginBottom: '0.75rem', flexWrap: 'wrap' }}>
+                      <span className="drawer-item-price" style={{ marginBottom: 0 }}>
+                        {formatCOP(unitPrice)}
+                      </span>
+                      {item.quantity > 1 && (
+                        <span style={{ fontSize: '0.8rem', color: '#666', fontWeight: 500 }}>
+                          (Total: {formatCOP(itemTotal)})
+                        </span>
+                      )}
+                    </div>
 
                     <div className="drawer-item-controls">
                       <button onClick={() => updateQuantity(item.id, item.quantity - 1)} className="qty-btn" aria-label="Disminuir">-</button>

@@ -41,7 +41,7 @@ export const Terms = () => {
 
         <h2>4. Entregas</h2>
         <p>
-          Realizamos entregas a domicilio en Caldas, La Estrella, Sabaneta, Envigado, Itagüí y Medellín. 
+          Realizamos entregas a domicilio en todo Medellín (El Poblado, Laureles, Belén, Centro, Norte) y municipios del área metropolitana. 
           Para entregas el mismo día, los pedidos deben confirmarse antes de las 12:00 PM. 
           Los horarios de entrega son por jornada (Mañana: 8AM-1PM o Tarde: 1PM-6PM) y no garantizamos 
           una hora exacta dentro de la jornada seleccionada.

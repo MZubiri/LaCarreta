@@ -39,7 +39,7 @@ const defaultSettings = {
   scheduleWeekdays: "Lunes a Sábado: 8:00 AM - 6:00 PM",
   scheduleWeekends: "Domingos y Festivos: Cerrado",
   googleMapsEmbedUrl: "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3967.0583547070116!2d-75.6378!3d6.0911!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x8e468307db4ef757%3A0x6b1c4e78a6ea23f0!2sCra.%2049%20%23131%20Sur-69%2C%20Caldas%2C%20Antioquia!5e0!3m2!1ses!2sco!4v1709000000000!5m2!1ses!2sco",
-  deliveryNotes: "Entregas en Caldas, La Estrella, Sabaneta, Itagüí y Envigado.",
+  deliveryNotes: "Entregas a domicilio en todo Medellín y municipios del área metropolitana.",
   heroImageUrl: "/images/hero-floral.jpg",
   heroTitle: "Arreglos florales hechos con pasión artesanal",
   heroTag: "Colección Floral Antioquia",
@@ -367,7 +367,7 @@ export const api = {
       id: orders.length + 1,
       orderCode,
       status: 'Pendiente',
-      deliveryMunicipality: orderData.deliveryMunicipality || 'Caldas',
+      deliveryMunicipality: orderData.deliveryMunicipality || 'Medellín',
       deliveryFee,
       cardStyle: orderData.cardStyle || 'Clásica Floral',
       cardSender: orderData.cardSender || '',
@@ -504,10 +504,12 @@ export const api = {
       pendingOrders: orders.filter(o => o.status === 'Pendiente').length,
       totalProducts: prods.length,
       recentOrders: orders.slice(0, 5),
-      topProducts: prods.slice(0, 4).map(p => ({
-        name: p.name_es || p.nameEs,
-        salesCount: 8,
-        revenue: (p.price || 120000) * 8
+      topProducts: prods.slice(0, 5).map(p => ({
+        productId: p.id,
+        productName: p.nameEs || p.name_es || p.name || 'Arreglo Floral',
+        image: p.image || '/images/roses-bouquet.jpg',
+        unitsSold: 8,
+        revenue: (Number(p.price) || 120000) * 8
       }))
     };
   },

@@ -90,7 +90,7 @@ export const ProductDetail = () => {
 
   const handleDirectWhatsApp = () => {
     if (!product) return;
-    const text = `Hola Florería La Carreta en Caldas, me interesa pedir: *${name}* (Cantidad: ${quantity}) - Total: ${formatCOP(product.price * quantity)}. ¿Podrían informarme disponibilidad para entrega a domicilio?`;
+    const text = `Hola Florería La Carreta en Medellín, me interesa pedir: *${name}* (Cantidad: ${quantity}) - Total: ${formatCOP(product.price * quantity)}. ¿Podrían informarme disponibilidad para entrega a domicilio?`;
     window.open(getWhatsAppLink(text), '_blank');
   };
 

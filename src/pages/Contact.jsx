@@ -42,7 +42,7 @@ export const Contact = () => {
 
   const faqs = [
     {
-      q: '¿Hacen envíos el mismo día a Caldas y municipios cercanos?',
+      q: '¿Hacen envíos el mismo día en Medellín?',
       a: 'Sí, para entregas el mismo día te sugerimos realizar tu pedido antes de las 12:00 PM vía WhatsApp o por la página web.'
     },
     {
@@ -55,7 +55,7 @@ export const Contact = () => {
     },
     {
       q: '¿Cuáles son las zonas de cobertura principales?',
-      a: 'Entregamos en todo el municipio de Caldas, La Estrella, Sabaneta, Envigado, Itagüí y la ciudad de Medellín.'
+      a: 'Entregamos en todo Medellín (El Poblado, Laureles, Belén, Centro, Norte), Envigado, Sabaneta e Itagüí.'
     }
   ];
 
@@ -78,7 +78,7 @@ export const Contact = () => {
             <span className="section-tag">Nuestra Sede</span>
             <h2>Florería La Carreta</h2>
             <p className="contact-intro">
-              Te atendemos personalmente en nuestro taller o enviamos tus emociones florales directamente a domicilio en Caldas y el Valle de Aburrá.
+              Te atendemos con gusto y enviamos tus arreglos florales directamente a domicilio en todo Medellín.
             </p>
 
             <div className="contact-details-list">
@@ -120,7 +120,7 @@ export const Contact = () => {
 
             <div className="contact-wa-block">
               <a 
-                href={getWhatsAppLink('Hola Florería La Carreta, quisiera consultar por un pedido en Caldas.')} 
+                href={getWhatsAppLink('Hola Florería La Carreta, quisiera consultar por un pedido para entrega a domicilio en Medellín.')} 
                 target="_blank" 
                 rel="noopener noreferrer"
                 className="btn-whatsapp-full"
@@ -139,7 +139,7 @@ export const Contact = () => {
               <div className="form-success-box">
                 <span className="success-icon">💌</span>
                 <h4>¡Mensaje Recibido!</h4>
-                <p>Gracias por escribirnos. Nuestro equipo en Caldas te responderá a la brevedad posible.</p>
+                <p>Gracias por escribirnos. Nuestro equipo te responderá a la brevedad posible.</p>
                 <button onClick={() => setFormSubmitted(false)} className="btn-primary" style={{ marginTop: '1.5rem' }}>
                   Enviar otro mensaje
                 </button>
@@ -261,7 +261,7 @@ export const Contact = () => {
           </div>
           <div className="map-frame">
             <iframe
-              title="Florería La Carreta Caldas Antioquia"
+              title="Florería La Carreta Medellín"
               src={mapsUrl || "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3967.0583547070116!2d-75.6378!3d6.0911!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x8e468307db4ef757%3A0x6b1c4e78a6ea23f0!2sCra.%2049%20%23131%20Sur-69%2C%20Caldas%2C%20Antioquia!5e0!3m2!1ses!2sco!4v1709000000000!5m2!1ses!2sco"}
               width="100%"
               height="420"

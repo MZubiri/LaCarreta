@@ -22,9 +22,11 @@ export const Admin = () => {
   const [loading, setLoading] = useState(true);
   const [feedbackMsg, setFeedbackMsg] = useState({ type: '', text: '' });
 
-  // Filters for orders
+  // Filters and pagination for orders
   const [orderStatusFilter, setOrderStatusFilter] = useState('todos');
   const [orderSearchTerm, setOrderSearchTerm] = useState('');
+  const [ordersPage, setOrdersPage] = useState(1);
+  const [ordersPerPage, setOrdersPerPage] = useState(10);
 
   // Filters for products
   const [productSearchTerm, setProductSearchTerm] = useState('');
@@ -72,7 +74,7 @@ export const Admin = () => {
     scheduleWeekdays: 'Lunes a Sábado: 8:00 AM - 6:00 PM',
     scheduleWeekends: 'Domingos y Festivos: Cerrado',
     googleMapsEmbedUrl: '',
-    deliveryNotes: 'Entregas en Caldas, La Estrella, Sabaneta, Itagüí y Envigado.',
+    deliveryNotes: 'Entregas a domicilio en todo Medellín y área metropolitana.',
     heroImageUrl: '/images/hero-floral.jpg',
     heroTitle: 'Arreglos florales hechos con pasión artesanal',
     heroTag: 'Colección Floral Antioquia',
@@ -82,6 +84,7 @@ export const Admin = () => {
   });
   const [uploadingHeroImage, setUploadingHeroImage] = useState(false);
   const [testingTelegram, setTestingTelegram] = useState(false);
+  const [activeSettingsModal, setActiveSettingsModal] = useState(null); // 'business', 'hero', 'notifications', 'security'
 
   // Password Change State
   const [passwordForm, setPasswordForm] = useState({
@@ -105,7 +108,7 @@ export const Admin = () => {
         scheduleWeekdays: settings.scheduleWeekdays || 'Lunes a Sábado: 8:00 AM - 6:00 PM',
         scheduleWeekends: settings.scheduleWeekends || 'Domingos y Festivos: Cerrado',
         googleMapsEmbedUrl: settings.googleMapsEmbedUrl || '',
-        deliveryNotes: settings.deliveryNotes || 'Entregas en Caldas, La Estrella, Sabaneta, Itagüí y Envigado.',
+        deliveryNotes: settings.deliveryNotes || 'Entregas a domicilio en todo Medellín y área metropolitana.',
         heroImageUrl: settings.heroImageUrl || '/images/hero-floral.jpg',
         heroTitle: settings.heroTitle || 'Arreglos florales hechos con pasión artesanal',
         heroTag: settings.heroTag || 'Colección Floral Antioquia',
@@ -343,7 +346,7 @@ export const Admin = () => {
       `"${(o.customerName || '').replace(/"/g, '""')}"`,
       `"${o.customerPhone || ''}"`,
       `"${o.customerEmail || ''}"`,
-      `"${(o.deliveryMunicipality || 'Caldas').replace(/"/g, '""')}"`,
+      `"${(o.deliveryMunicipality || 'Medellín').replace(/"/g, '""')}"`,
       o.deliveryFee || 0,
       `"${(o.deliveryAddress || '').replace(/"/g, '""')}"`,
       `"${o.deliveryDate || ''}"`,
@@ -447,6 +450,7 @@ export const Admin = () => {
       await updateSettings(settingsForm);
       await refreshSettings();
       showNotification('¡Ajustes del negocio guardados! Todos los datos se han actualizado en el sitio.');
+      setActiveSettingsModal(null);
     } catch (err) {
       alert(err.message || 'Error al guardar los ajustes');
     }
@@ -462,7 +466,7 @@ export const Admin = () => {
       const msg = `🌸 *¡Prueba de Notificación - Florería La Carreta!* 🌸\n\n` +
                   `Tu bot de Telegram está correctamente configurado y listo para recibir alertas automáticas de cada nuevo pedido.\n\n` +
                   `⏰ *Fecha de prueba:* ${new Date().toLocaleString('es-CO')}\n` +
-                  `📍 Florería La Carreta - Caldas, Antioquia`;
+                  `📍 Florería La Carreta - Medellín`;
       const res = await fetch(`https://api.telegram.org/bot${settingsForm.telegramBotToken}/sendMessage`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -497,6 +501,7 @@ export const Admin = () => {
       await api.changePassword(passwordForm.currentPassword, passwordForm.newPassword);
       showNotification('Contraseña cambiada exitosamente.');
       setPasswordForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
+      setActiveSettingsModal(null);
     } catch (err) {
       alert(err.message || 'Error al cambiar la contraseña');
     } finally {
@@ -514,6 +519,19 @@ export const Admin = () => {
       (o.customerPhone || '').includes(term);
     return matchesStatus && matchesSearch;
   });
+
+  // Orders Pagination calculations
+  const totalOrdersCount = filteredOrders.length;
+  const totalOrderPages = Math.max(1, Math.ceil(totalOrdersCount / ordersPerPage));
+  const safeOrdersPage = Math.min(Math.max(1, ordersPage), totalOrderPages);
+  const ordersStartIndex = (safeOrdersPage - 1) * ordersPerPage;
+  const paginatedOrders = filteredOrders.slice(ordersStartIndex, ordersStartIndex + ordersPerPage);
+  const ordersEndIndex = Math.min(ordersStartIndex + ordersPerPage, totalOrdersCount);
+
+  // Reset pagination when filters change
+  useEffect(() => {
+    setOrdersPage(1);
+  }, [orderSearchTerm, orderStatusFilter, ordersPerPage]);
 
   // Filtered Products
   const filteredProducts = products.filter(p => {
@@ -794,15 +812,68 @@ export const Admin = () => {
                 <p style={{ color: '#666', fontSize: '0.9rem' }}>Aún no hay suficientes ventas para calcular los más populares.</p>
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                  {dashboardStats.topProducts.map((tp, idx) => (
-                    <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.75rem', backgroundColor: '#F9FAFB', borderRadius: '6px' }}>
-                      <div>
-                        <span style={{ fontWeight: 600, fontSize: '0.9rem' }}>{idx + 1}. {tp.productName}</span>
-                        <div style={{ fontSize: '0.8rem', color: '#666' }}>{tp.unitsSold} unidades vendidas</div>
+                  {dashboardStats.topProducts.map((tp, idx) => {
+                    const matchedProd = products.find(p => p.id === (tp.productId || tp.id));
+                    const name = tp.productName || tp.name || matchedProd?.nameEs || matchedProd?.name_es || matchedProd?.name || `Arreglo #${tp.productId || idx + 1}`;
+                    const imageSrc = api.getImageUrl(tp.image || matchedProd?.image || '/images/roses-bouquet.jpg');
+                    const units = tp.unitsSold || tp.salesCount || 0;
+                    const revenue = tp.revenue || 0;
+                    const medals = ['🥇', '🥈', '🥉'];
+                    const rankLabel = medals[idx] || `${idx + 1}.`;
+
+                    return (
+                      <div key={idx} style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.85rem',
+                        padding: '0.65rem 0.85rem',
+                        backgroundColor: '#F9FAFB',
+                        borderRadius: '8px',
+                        border: '1px solid #F3F4F6',
+                        transition: 'all 0.2s ease'
+                      }}>
+                        <span style={{ fontSize: '1.15rem', minWidth: '22px', textAlign: 'center', fontWeight: 700 }}>
+                          {rankLabel}
+                        </span>
+
+                        <img
+                          src={imageSrc}
+                          alt={name}
+                          style={{
+                            width: '44px',
+                            height: '44px',
+                            objectFit: 'cover',
+                            borderRadius: '6px',
+                            border: '1px solid #E5E7EB',
+                            backgroundColor: '#FFF',
+                            flexShrink: 0
+                          }}
+                          onError={(e) => { e.target.src = '/images/roses-bouquet.jpg'; }}
+                        />
+
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <span style={{
+                            fontWeight: 600,
+                            fontSize: '0.9rem',
+                            display: 'block',
+                            color: '#1E293B',
+                            whiteSpace: 'nowrap',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis'
+                          }}>
+                            {name}
+                          </span>
+                          <span style={{ fontSize: '0.78rem', color: '#64748B' }}>
+                            {units} {units === 1 ? 'unidad vendida' : 'unidades vendidas'}
+                          </span>
+                        </div>
+
+                        <span style={{ fontWeight: 700, color: 'var(--color-gold)', fontSize: '0.95rem', flexShrink: 0 }}>
+                          {formatCOP(revenue)}
+                        </span>
                       </div>
-                      <span style={{ fontWeight: 600, color: 'var(--color-gold)' }}>{formatCOP(tp.revenue)}</span>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </div>
@@ -1113,6 +1184,21 @@ export const Admin = () => {
                 <option value="Cancelado">Cancelado</option>
               </select>
             </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', minWidth: '170px' }}>
+              <span style={{ fontSize: '0.85rem', color: '#64748B', whiteSpace: 'nowrap' }}>Por página:</span>
+              <select
+                value={ordersPerPage}
+                onChange={(e) => setOrdersPerPage(Number(e.target.value))}
+                className="luxury-input"
+                style={{ padding: '0.55rem 0.75rem', fontSize: '0.85rem', width: '100%' }}
+              >
+                <option value={5}>5 pedidos</option>
+                <option value={10}>10 pedidos</option>
+                <option value={20}>20 pedidos</option>
+                <option value={50}>50 pedidos</option>
+              </select>
+            </div>
           </div>
 
           {/* Orders Cards List */}
@@ -1121,8 +1207,9 @@ export const Admin = () => {
               No se encontraron pedidos con los filtros seleccionados.
             </div>
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-              {filteredOrders.map(order => {
+            <>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                {paginatedOrders.map(order => {
                 const total = order.totalAmount || order.total || 0;
                 const cleanPhone = (order.customerPhone || '').replace(/\D/g, '');
                 const waMessage = encodeURIComponent(
@@ -1216,7 +1303,7 @@ export const Admin = () => {
                       <div>
                         <h4 style={{ margin: '0 0 0.5rem 0', fontSize: '0.85rem', color: '#64748B', textTransform: 'uppercase' }}>Entrega</h4>
                         <div style={{ fontSize: '0.9rem', fontWeight: 600, color: '#1E293B' }}>
-                          📍 {order.deliveryMunicipality || 'Caldas'}
+                          📍 {order.deliveryMunicipality || 'Medellín'}
                           <span style={{ fontSize: '0.8rem', color: '#059669', fontWeight: 600, marginLeft: '0.4rem', backgroundColor: '#ECFDF5', padding: '0.15rem 0.4rem', borderRadius: '4px' }}>
                             {order.deliveryFee > 0 ? `+${formatCOP(order.deliveryFee)} domicilio` : 'Envío Gratis / Recogida'}
                           </span>
@@ -1280,7 +1367,7 @@ export const Admin = () => {
                           <span>{formatCOP(Math.max(0, total - (order.deliveryFee || 0)))}</span>
                         </div>
                         <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', color: '#64748B' }}>
-                          <span>Domicilio ({order.deliveryMunicipality || 'Caldas'}):</span>
+                          <span>Domicilio ({order.deliveryMunicipality || 'Medellín'}):</span>
                           <span>{order.deliveryFee > 0 ? formatCOP(order.deliveryFee) : 'Gratis'}</span>
                         </div>
                         <div style={{
@@ -1301,9 +1388,138 @@ export const Admin = () => {
                 );
               })}
             </div>
-          )}
-        </div>
-      )}
+
+            {/* Pagination Controls */}
+            {totalOrdersCount > 0 && (
+              <div style={{
+                display: 'flex',
+                flexWrap: 'wrap',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                gap: '1rem',
+                marginTop: '1.5rem',
+                padding: '1rem 1.25rem',
+                backgroundColor: '#FFF',
+                border: '1px solid #E5E7EB',
+                borderRadius: '8px'
+              }}>
+                <div style={{ fontSize: '0.875rem', color: '#64748B' }}>
+                  Mostrando <strong style={{ color: '#1E293B' }}>{ordersStartIndex + 1}</strong> a <strong style={{ color: '#1E293B' }}>{ordersEndIndex}</strong> de <strong style={{ color: '#1E293B' }}>{totalOrdersCount}</strong> pedidos
+                </div>
+
+                {totalOrderPages > 1 && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                    <button
+                      onClick={() => setOrdersPage(1)}
+                      disabled={safeOrdersPage === 1}
+                      style={{
+                        padding: '0.4rem 0.65rem',
+                        borderRadius: '6px',
+                        border: '1px solid #E5E7EB',
+                        backgroundColor: safeOrdersPage === 1 ? '#F3F4F6' : '#FFF',
+                        color: safeOrdersPage === 1 ? '#9CA3AF' : '#374151',
+                        cursor: safeOrdersPage === 1 ? 'not-allowed' : 'pointer',
+                        fontSize: '0.85rem',
+                        fontWeight: 500
+                      }}
+                      title="Primera página"
+                    >
+                      ««
+                    </button>
+                    <button
+                      onClick={() => setOrdersPage(p => Math.max(1, p - 1))}
+                      disabled={safeOrdersPage === 1}
+                      style={{
+                        padding: '0.4rem 0.75rem',
+                        borderRadius: '6px',
+                        border: '1px solid #E5E7EB',
+                        backgroundColor: safeOrdersPage === 1 ? '#F3F4F6' : '#FFF',
+                        color: safeOrdersPage === 1 ? '#9CA3AF' : '#374151',
+                        cursor: safeOrdersPage === 1 ? 'not-allowed' : 'pointer',
+                        fontSize: '0.85rem',
+                        fontWeight: 500
+                      }}
+                    >
+                      ‹ Anterior
+                    </button>
+
+                    {/* Dynamic page numbers with ellipsis */}
+                    {Array.from({ length: totalOrderPages }, (_, i) => i + 1)
+                      .filter(p => p === 1 || p === totalOrderPages || Math.abs(p - safeOrdersPage) <= 1)
+                      .reduce((acc, p, idx, arr) => {
+                        if (idx > 0 && p - arr[idx - 1] > 1) {
+                          acc.push(-1);
+                        }
+                        acc.push(p);
+                        return acc;
+                      }, [])
+                      .map((p, idx) => {
+                        if (p === -1) {
+                          return <span key={`ellipsis-${idx}`} style={{ padding: '0 0.25rem', color: '#9CA3AF' }}>...</span>;
+                        }
+                        const isActive = p === safeOrdersPage;
+                        return (
+                          <button
+                            key={p}
+                            onClick={() => setOrdersPage(p)}
+                            style={{
+                              padding: '0.4rem 0.75rem',
+                              borderRadius: '6px',
+                              border: isActive ? '1px solid var(--color-burgundy, #6B1D2F)' : '1px solid #E5E7EB',
+                              backgroundColor: isActive ? 'var(--color-burgundy, #6B1D2F)' : '#FFF',
+                              color: isActive ? '#FFF' : '#374151',
+                              cursor: 'pointer',
+                              fontSize: '0.85rem',
+                              fontWeight: isActive ? 700 : 500,
+                              minWidth: '34px'
+                            }}
+                          >
+                            {p}
+                          </button>
+                        );
+                      })}
+
+                    <button
+                      onClick={() => setOrdersPage(p => Math.min(totalOrderPages, p + 1))}
+                      disabled={safeOrdersPage === totalOrderPages}
+                      style={{
+                        padding: '0.4rem 0.75rem',
+                        borderRadius: '6px',
+                        border: '1px solid #E5E7EB',
+                        backgroundColor: safeOrdersPage === totalOrderPages ? '#F3F4F6' : '#FFF',
+                        color: safeOrdersPage === totalOrderPages ? '#9CA3AF' : '#374151',
+                        cursor: safeOrdersPage === totalOrderPages ? 'not-allowed' : 'pointer',
+                        fontSize: '0.85rem',
+                        fontWeight: 500
+                      }}
+                    >
+                      Siguiente ›
+                    </button>
+                    <button
+                      onClick={() => setOrdersPage(totalOrderPages)}
+                      disabled={safeOrdersPage === totalOrderPages}
+                      style={{
+                        padding: '0.4rem 0.65rem',
+                        borderRadius: '6px',
+                        border: '1px solid #E5E7EB',
+                        backgroundColor: safeOrdersPage === totalOrderPages ? '#F3F4F6' : '#FFF',
+                        color: safeOrdersPage === totalOrderPages ? '#9CA3AF' : '#374151',
+                        cursor: safeOrdersPage === totalOrderPages ? 'not-allowed' : 'pointer',
+                        fontSize: '0.85rem',
+                        fontWeight: 500
+                      }}
+                      title="Última página"
+                    >
+                      »»
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+          </>
+        )}
+      </div>
+    )}
 
       {/* ================= TAB 4: CATEGORIES MANAGEMENT ================= */}
       {!loading && activeTab === 'categories' && (
@@ -1407,227 +1623,629 @@ export const Admin = () => {
 
       {/* ================= TAB 5: BUSINESS SETTINGS ================= */}
       {!loading && activeTab === 'settings' && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: '2.5rem' }}>
-          {/* Business Info Form */}
-          <div style={{ backgroundColor: '#FFF', border: '1px solid #E5E7EB', borderRadius: '8px', padding: '2rem' }}>
-            <h3 style={{ fontSize: '1.4rem', marginTop: 0, marginBottom: '0.5rem' }}>🏢 Información del Negocio</h3>
-            <p style={{ color: '#666', fontSize: '0.85rem', marginBottom: '1.5rem' }}>
-              Los cambios guardados aquí se actualizan instantáneamente en el Header, Footer, WhatsApp y página de Contacto.
+        <div>
+          <div style={{ marginBottom: '2rem' }}>
+            <h3 className="section-title" style={{ fontSize: '1.75rem', margin: 0 }}>⚙️ Ajustes del Negocio</h3>
+            <p style={{ margin: '0.25rem 0 0 0', color: '#666', fontSize: '0.9rem' }}>
+              Administra la identidad de la tienda, canales de contacto, portada web, alertas automáticas y seguridad por módulos.
             </p>
+          </div>
 
-            <form onSubmit={handleSaveSettings} className="luxury-form">
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
-                <div className="form-group">
-                  <label style={{ fontSize: '0.85rem', fontWeight: 600, display: 'block', marginBottom: '0.3rem' }}>Teléfono de Llamadas</label>
-                  <input
-                    type="text"
-                    required
-                    value={settingsForm.businessPhone}
-                    onChange={(e) => setSettingsForm({ ...settingsForm, businessPhone: e.target.value })}
-                    className="luxury-input"
-                    style={{ width: '100%' }}
-                  />
-                </div>
-
-                <div className="form-group">
-                  <label style={{ fontSize: '0.85rem', fontWeight: 600, display: 'block', marginBottom: '0.3rem' }}>Número WhatsApp (sin +)</label>
-                  <input
-                    type="text"
-                    required
-                    value={settingsForm.whatsAppNumber}
-                    onChange={(e) => setSettingsForm({ ...settingsForm, whatsAppNumber: e.target.value })}
-                    className="luxury-input"
-                    style={{ width: '100%' }}
-                  />
-                </div>
+          {/* Settings Modular Cards Grid */}
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
+            gap: '1.75rem',
+            alignItems: 'stretch'
+          }}>
+            {/* Card 1: Business & Contact Info */}
+            <div style={{
+              backgroundColor: '#FFF',
+              border: '1px solid #E5E7EB',
+              borderRadius: '12px',
+              padding: '1.75rem',
+              display: 'flex',
+              flexDirection: 'column',
+              boxShadow: '0 4px 6px rgba(0,0,0,0.02)'
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+                <h4 style={{ margin: 0, fontSize: '1.15rem', display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#1E293B' }}>
+                  🏢 Información & Contacto
+                </h4>
+                <span style={{ fontSize: '0.75rem', backgroundColor: '#F0FDF4', color: '#166534', padding: '0.2rem 0.6rem', borderRadius: '12px', fontWeight: 600 }}>
+                  Tienda & Clientes
+                </span>
               </div>
+              <p style={{ color: '#64748B', fontSize: '0.85rem', margin: '0 0 1.25rem 0', lineHeight: 1.5 }}>
+                Teléfonos de llamadas, WhatsApp de compras, correo comercial, dirección y horarios.
+              </p>
 
-              <div className="form-group" style={{ marginBottom: '1rem' }}>
-                <label style={{ fontSize: '0.85rem', fontWeight: 600, display: 'block', marginBottom: '0.3rem' }}>Correo Electrónico Comercial</label>
-                <input
-                  type="email"
-                  required
-                  value={settingsForm.businessEmail}
-                  onChange={(e) => setSettingsForm({ ...settingsForm, businessEmail: e.target.value })}
-                  className="luxury-input"
-                  style={{ width: '100%' }}
-                />
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
-                <div className="form-group">
-                  <label style={{ fontSize: '0.85rem', fontWeight: 600, display: 'block', marginBottom: '0.3rem' }}>Dirección Física</label>
-                  <input
-                    type="text"
-                    required
-                    value={settingsForm.address}
-                    onChange={(e) => setSettingsForm({ ...settingsForm, address: e.target.value })}
-                    className="luxury-input"
-                    style={{ width: '100%' }}
-                  />
-                </div>
-
-                <div className="form-group">
-                  <label style={{ fontSize: '0.85rem', fontWeight: 600, display: 'block', marginBottom: '0.3rem' }}>Ciudad / Región</label>
-                  <input
-                    type="text"
-                    required
-                    value={settingsForm.city}
-                    onChange={(e) => setSettingsForm({ ...settingsForm, city: e.target.value })}
-                    className="luxury-input"
-                    style={{ width: '100%' }}
-                  />
-                </div>
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
-                <div className="form-group">
-                  <label style={{ fontSize: '0.85rem', fontWeight: 600, display: 'block', marginBottom: '0.3rem' }}>Horario Lunes a Sábado</label>
-                  <input
-                    type="text"
-                    value={settingsForm.scheduleWeekdays}
-                    onChange={(e) => setSettingsForm({ ...settingsForm, scheduleWeekdays: e.target.value })}
-                    className="luxury-input"
-                    style={{ width: '100%' }}
-                  />
-                </div>
-
-                <div className="form-group">
-                  <label style={{ fontSize: '0.85rem', fontWeight: 600, display: 'block', marginBottom: '0.3rem' }}>Horario Domingos / Festivos</label>
-                  <input
-                    type="text"
-                    value={settingsForm.scheduleWeekends}
-                    onChange={(e) => setSettingsForm({ ...settingsForm, scheduleWeekends: e.target.value })}
-                    className="luxury-input"
-                    style={{ width: '100%' }}
-                  />
-                </div>
-              </div>
-
-              <div className="form-group" style={{ marginBottom: '1rem' }}>
-                <label style={{ fontSize: '0.85rem', fontWeight: 600, display: 'block', marginBottom: '0.3rem' }}>Instagram URL</label>
-                <input
-                  type="url"
-                  value={settingsForm.instagramUrl}
-                  onChange={(e) => setSettingsForm({ ...settingsForm, instagramUrl: e.target.value })}
-                  className="luxury-input"
-                  style={{ width: '100%' }}
-                />
-              </div>
-
-              <div className="form-group" style={{ marginBottom: '1rem' }}>
-                <label style={{ fontSize: '0.85rem', fontWeight: 600, display: 'block', marginBottom: '0.3rem' }}>Facebook URL (Opcional)</label>
-                <input
-                  type="url"
-                  value={settingsForm.facebookUrl}
-                  onChange={(e) => setSettingsForm({ ...settingsForm, facebookUrl: e.target.value })}
-                  className="luxury-input"
-                  placeholder="https://facebook.com/..."
-                  style={{ width: '100%' }}
-                />
-              </div>
-
-              <div className="form-group" style={{ marginBottom: '1rem' }}>
-                <label style={{ fontSize: '0.85rem', fontWeight: 600, display: 'block', marginBottom: '0.3rem' }}>Google Maps Embed URL</label>
-                <input
-                  type="text"
-                  value={settingsForm.googleMapsEmbedUrl}
-                  onChange={(e) => setSettingsForm({ ...settingsForm, googleMapsEmbedUrl: e.target.value })}
-                  className="luxury-input"
-                  style={{ width: '100%' }}
-                />
-              </div>
-
-              <div className="form-group" style={{ marginBottom: '1.5rem' }}>
-                <label style={{ fontSize: '0.85rem', fontWeight: 600, display: 'block', marginBottom: '0.3rem' }}>Zonas de Cobertura y Entrega</label>
-                <textarea
-                  rows="2"
-                  value={settingsForm.deliveryNotes}
-                  onChange={(e) => setSettingsForm({ ...settingsForm, deliveryNotes: e.target.value })}
-                  className="luxury-input"
-                  style={{ width: '100%' }}
-                />
+              <div style={{
+                backgroundColor: '#F9FAFB',
+                borderRadius: '8px',
+                padding: '1rem',
+                fontSize: '0.85rem',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '0.5rem',
+                marginBottom: '1.5rem',
+                flex: 1
+              }}>
+                <div><strong>📞 Teléfono:</strong> <span style={{ color: '#4B5563' }}>{settingsForm.businessPhone || 'No registrado'}</span></div>
+                <div><strong>💬 WhatsApp:</strong> <span style={{ color: '#4B5563' }}>+{settingsForm.whatsAppNumber || 'No registrado'}</span></div>
+                <div><strong>✉️ Email:</strong> <span style={{ color: '#4B5563' }}>{settingsForm.businessEmail || 'No registrado'}</span></div>
+                <div><strong>📍 Dirección:</strong> <span style={{ color: '#4B5563' }}>{settingsForm.address}, {settingsForm.city}</span></div>
+                <div><strong>🕒 Horario:</strong> <span style={{ color: '#4B5563' }}>{settingsForm.scheduleWeekdays}</span></div>
               </div>
 
               <button
-                type="submit"
+                type="button"
+                onClick={() => setActiveSettingsModal('business')}
                 className="btn-primary"
-                style={{ width: '100%', padding: '0.85rem', cursor: 'pointer' }}
+                style={{
+                  width: '100%',
+                  padding: '0.75rem 1rem',
+                  cursor: 'pointer',
+                  fontSize: '0.9rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '0.5rem'
+                }}
               >
-                💾 Guardar Configuración del Negocio
+                ✏️ Modificar Datos del Negocio
               </button>
-            </form>
-          </div>
+            </div>
 
-          {/* Change Password Card and Hero Settings Card */}
-          <div>
-            {/* Hero Banner & Campaign Card */}
-            <div style={{ backgroundColor: '#FFF', border: '1px solid #E5E7EB', borderRadius: '8px', padding: '2rem', marginBottom: '2rem' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                <h3 style={{ fontSize: '1.4rem', margin: 0 }}>🎨 Banner Principal (Hero)</h3>
+            {/* Card 2: Web Hero Banner */}
+            <div style={{
+              backgroundColor: '#FFF',
+              border: '1px solid #E5E7EB',
+              borderRadius: '12px',
+              padding: '1.75rem',
+              display: 'flex',
+              flexDirection: 'column',
+              boxShadow: '0 4px 6px rgba(0,0,0,0.02)'
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+                <h4 style={{ margin: 0, fontSize: '1.15rem', display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#1E293B' }}>
+                  🎨 Portada Web (Hero)
+                </h4>
                 <span style={{ fontSize: '0.75rem', backgroundColor: '#FDF2F8', color: 'var(--color-burgundy)', padding: '0.2rem 0.6rem', borderRadius: '12px', fontWeight: 600 }}>
-                  Portada Web
+                  Diseño de Inicio
                 </span>
               </div>
-              <p style={{ color: '#666', fontSize: '0.85rem', marginBottom: '1.25rem' }}>
-                Personaliza la foto de portada, la etiqueta y el título principal que ven tus clientes al entrar a la tienda.
+              <p style={{ color: '#64748B', fontSize: '0.85rem', margin: '0 0 1rem 0', lineHeight: 1.5 }}>
+                Personaliza la foto de portada, la insignia de ocasión y el título principal de la tienda.
               </p>
 
-              {/* Live Hero Preview Box */}
+              {/* Mini Hero Preview */}
               <div style={{
                 position: 'relative',
-                height: '180px',
+                height: '130px',
                 borderRadius: '8px',
                 overflow: 'hidden',
                 backgroundImage: `url('${api.getImageUrl(settingsForm.heroImageUrl) || '/images/hero-floral.jpg'}')`,
                 backgroundSize: 'cover',
                 backgroundPosition: 'center',
-                marginBottom: '1.25rem',
+                marginBottom: '1.5rem',
                 display: 'flex',
                 flexDirection: 'column',
                 justifyContent: 'flex-end',
-                padding: '1.2rem',
-                boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
+                padding: '0.85rem',
+                flex: 1
               }}>
                 <div style={{
                   position: 'absolute',
                   inset: 0,
-                  background: 'linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.35) 60%, rgba(0,0,0,0.1) 100%)'
+                  background: 'linear-gradient(to top, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0.3) 60%, rgba(0,0,0,0.05) 100%)'
                 }} />
                 <div style={{ position: 'relative', zIndex: 1 }}>
                   <span style={{
                     display: 'inline-block',
-                    fontSize: '0.7rem',
+                    fontSize: '0.65rem',
                     textTransform: 'uppercase',
                     letterSpacing: '0.1em',
                     color: '#F9D5E5',
-                    fontWeight: 600,
-                    marginBottom: '0.25rem'
+                    fontWeight: 700,
+                    marginBottom: '0.15rem'
                   }}>
                     {settingsForm.heroTag || 'Colección Floral'}
                   </span>
-                  <h4 style={{
-                    margin: 0,
+                  <div style={{
                     color: '#FFF',
-                    fontSize: '1.05rem',
+                    fontSize: '0.85rem',
                     fontWeight: 600,
-                    lineHeight: 1.3,
-                    textShadow: '0 2px 4px rgba(0,0,0,0.5)'
+                    lineHeight: 1.25,
+                    textShadow: '0 1px 3px rgba(0,0,0,0.6)',
+                    display: '-webkit-box',
+                    WebkitLineClamp: 2,
+                    WebkitBoxOrient: 'vertical',
+                    overflow: 'hidden'
                   }}>
                     {settingsForm.heroTitle || 'Arreglos florales hechos con pasión'}
-                  </h4>
+                  </div>
                 </div>
               </div>
 
-              {/* Upload Photo Button & Input */}
-              <div style={{ marginBottom: '1.25rem' }}>
-                <label style={{ fontSize: '0.85rem', fontWeight: 600, display: 'block', marginBottom: '0.3rem' }}>
-                  Foto de Portada
-                </label>
-                <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+              <button
+                type="button"
+                onClick={() => setActiveSettingsModal('hero')}
+                className="btn-primary"
+                style={{
+                  width: '100%',
+                  padding: '0.75rem 1rem',
+                  cursor: 'pointer',
+                  fontSize: '0.9rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '0.5rem'
+                }}
+              >
+                ✏️ Personalizar Portada y Campaña
+              </button>
+            </div>
+
+            {/* Card 3: Instant Notifications */}
+            <div style={{
+              backgroundColor: '#FFF',
+              border: '1px solid #E5E7EB',
+              borderRadius: '12px',
+              padding: '1.75rem',
+              display: 'flex',
+              flexDirection: 'column',
+              boxShadow: '0 4px 6px rgba(0,0,0,0.02)'
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+                <h4 style={{ margin: 0, fontSize: '1.15rem', display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#1E293B' }}>
+                  ⚡ Notificaciones de Pedidos
+                </h4>
+                <span style={{ fontSize: '0.75rem', backgroundColor: '#E0F2FE', color: '#0369A1', padding: '0.2rem 0.6rem', borderRadius: '12px', fontWeight: 600 }}>
+                  Telegram & Webhooks
+                </span>
+              </div>
+              <p style={{ color: '#64748B', fontSize: '0.85rem', margin: '0 0 1.25rem 0', lineHeight: 1.5 }}>
+                Recibe alertas automáticas en tiempo real en Telegram con el detalle completo de cada nuevo pedido.
+              </p>
+
+              <div style={{
+                backgroundColor: '#F9FAFB',
+                borderRadius: '8px',
+                padding: '1rem',
+                fontSize: '0.85rem',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '0.6rem',
+                marginBottom: '1.5rem',
+                flex: 1
+              }}>
+                <div>
+                  <strong>🤖 Telegram Bot:</strong>{' '}
+                  <span style={{
+                    fontWeight: 600,
+                    color: (settingsForm.telegramBotToken && settingsForm.telegramChatId) ? '#166534' : '#9CA3AF'
+                  }}>
+                    {(settingsForm.telegramBotToken && settingsForm.telegramChatId) ? '🟢 Conectado y Activo' : '⚪ Sin configurar'}
+                  </span>
+                </div>
+                <div>
+                  <strong>💬 Chat / Canal:</strong>{' '}
+                  <span style={{ color: '#4B5563' }}>{settingsForm.telegramChatId || 'No asignado'}</span>
+                </div>
+                <div>
+                  <strong>🔗 Webhook URL:</strong>{' '}
+                  <span style={{
+                    fontWeight: 600,
+                    color: settingsForm.webhookUrl ? '#0369A1' : '#9CA3AF'
+                  }}>
+                    {settingsForm.webhookUrl ? '🟢 Activo' : '⚪ Sin webhook'}
+                  </span>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setActiveSettingsModal('notifications')}
+                className="btn-primary"
+                style={{
+                  width: '100%',
+                  padding: '0.75rem 1rem',
+                  cursor: 'pointer',
+                  fontSize: '0.9rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '0.5rem'
+                }}
+              >
+                ✏️ Configurar Alertas y Bot
+              </button>
+            </div>
+
+            {/* Card 4: Security & Password */}
+            <div style={{
+              backgroundColor: '#FFF',
+              border: '1px solid #E5E7EB',
+              borderRadius: '12px',
+              padding: '1.75rem',
+              display: 'flex',
+              flexDirection: 'column',
+              boxShadow: '0 4px 6px rgba(0,0,0,0.02)'
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+                <h4 style={{ margin: 0, fontSize: '1.15rem', display: 'flex', alignItems: 'center', gap: '0.5rem', color: '#1E293B' }}>
+                  🔐 Seguridad de la Cuenta
+                </h4>
+                <span style={{ fontSize: '0.75rem', backgroundColor: '#FEF3C7', color: '#92400E', padding: '0.2rem 0.6rem', borderRadius: '12px', fontWeight: 600 }}>
+                  Acceso Admin
+                </span>
+              </div>
+              <p style={{ color: '#64748B', fontSize: '0.85rem', margin: '0 0 1.25rem 0', lineHeight: 1.5 }}>
+                Protección del panel administrativo de Florería La Carreta y actualización de contraseña.
+              </p>
+
+              <div style={{
+                backgroundColor: '#F9FAFB',
+                borderRadius: '8px',
+                padding: '1rem',
+                fontSize: '0.85rem',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '0.6rem',
+                marginBottom: '1.5rem',
+                flex: 1
+              }}>
+                <div><strong>👤 Usuario:</strong> <span style={{ color: '#4B5563' }}>admin</span></div>
+                <div><strong>🛡️ Autenticación:</strong> <span style={{ color: '#166534', fontWeight: 600 }}>🟢 Sesión Segura</span></div>
+                <div><strong>🔑 Contraseña:</strong> <span style={{ color: '#4B5563' }}>••••••••••••</span></div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setActiveSettingsModal('security')}
+                style={{
+                  width: '100%',
+                  padding: '0.75rem 1rem',
+                  cursor: 'pointer',
+                  fontSize: '0.9rem',
+                  backgroundColor: '#1E293B',
+                  color: '#FFF',
+                  border: 'none',
+                  borderRadius: '6px',
+                  fontWeight: 600,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '0.5rem'
+                }}
+              >
+                🔑 Cambiar Contraseña
+              </button>
+            </div>
+          </div>
+
+          {/* Quick Map Preview if configured */}
+          {settingsForm.googleMapsEmbedUrl && (
+            <div style={{ marginTop: '2rem', backgroundColor: '#FFF', border: '1px solid #E5E7EB', borderRadius: '12px', padding: '1.5rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+                <h4 style={{ margin: 0, fontSize: '1rem', color: '#1E293B' }}>🗺️ Ubicación en Google Maps (Página de Contacto)</h4>
+                <button
+                  type="button"
+                  onClick={() => setActiveSettingsModal('business')}
+                  style={{ background: 'none', border: 'none', color: 'var(--color-accent, #B8860B)', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 600 }}
+                >
+                  Editar enlace de mapa →
+                </button>
+              </div>
+              <iframe
+                title="Google Maps Preview"
+                src={settingsForm.googleMapsEmbedUrl}
+                width="100%"
+                height="200"
+                style={{ border: 0, borderRadius: '8px' }}
+                allowFullScreen=""
+                loading="lazy"
+              />
+            </div>
+          )}
+
+          {/* ================= MODAL 1: BUSINESS & CONTACT ================= */}
+          {activeSettingsModal === 'business' && (
+            <div style={{
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              backgroundColor: 'rgba(0, 0, 0, 0.6)',
+              backdropFilter: 'blur(3px)',
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center',
+              zIndex: 9999,
+              padding: '1rem'
+            }}>
+              <div style={{
+                backgroundColor: '#FFF',
+                borderRadius: '12px',
+                width: '100%',
+                maxWidth: '680px',
+                maxHeight: '90vh',
+                overflowY: 'auto',
+                padding: '2rem',
+                boxShadow: '0 25px 50px rgba(0,0,0,0.2)'
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', borderBottom: '1px solid #E5E7EB', paddingBottom: '1rem' }}>
+                  <div>
+                    <h3 style={{ margin: 0, fontSize: '1.4rem', color: '#1E293B' }}>🏢 Datos del Negocio & Contacto</h3>
+                    <p style={{ margin: '0.25rem 0 0 0', color: '#64748B', fontSize: '0.85rem' }}>
+                      Se actualiza automáticamente en Header, Footer, WhatsApp y Contacto.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setActiveSettingsModal(null)}
+                    style={{ background: 'none', border: 'none', fontSize: '1.5rem', cursor: 'pointer', color: '#9CA3AF' }}
+                  >
+                    ✕
+                  </button>
+                </div>
+
+                <form onSubmit={handleSaveSettings} className="luxury-form">
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1rem', marginBottom: '1rem' }}>
+                    <div className="form-group">
+                      <label style={{ fontSize: '0.85rem', fontWeight: 600, display: 'block', marginBottom: '0.3rem' }}>Teléfono de Llamadas</label>
+                      <input
+                        type="text"
+                        required
+                        value={settingsForm.businessPhone}
+                        onChange={(e) => setSettingsForm({ ...settingsForm, businessPhone: e.target.value })}
+                        className="luxury-input"
+                        style={{ width: '100%' }}
+                      />
+                    </div>
+
+                    <div className="form-group">
+                      <label style={{ fontSize: '0.85rem', fontWeight: 600, display: 'block', marginBottom: '0.3rem' }}>Número WhatsApp (sin +)</label>
+                      <input
+                        type="text"
+                        required
+                        value={settingsForm.whatsAppNumber}
+                        onChange={(e) => setSettingsForm({ ...settingsForm, whatsAppNumber: e.target.value })}
+                        className="luxury-input"
+                        style={{ width: '100%' }}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="form-group" style={{ marginBottom: '1rem' }}>
+                    <label style={{ fontSize: '0.85rem', fontWeight: 600, display: 'block', marginBottom: '0.3rem' }}>Correo Electrónico Comercial</label>
+                    <input
+                      type="email"
+                      required
+                      value={settingsForm.businessEmail}
+                      onChange={(e) => setSettingsForm({ ...settingsForm, businessEmail: e.target.value })}
+                      className="luxury-input"
+                      style={{ width: '100%' }}
+                    />
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1rem', marginBottom: '1rem' }}>
+                    <div className="form-group">
+                      <label style={{ fontSize: '0.85rem', fontWeight: 600, display: 'block', marginBottom: '0.3rem' }}>Dirección Física</label>
+                      <input
+                        type="text"
+                        required
+                        value={settingsForm.address}
+                        onChange={(e) => setSettingsForm({ ...settingsForm, address: e.target.value })}
+                        className="luxury-input"
+                        style={{ width: '100%' }}
+                      />
+                    </div>
+
+                    <div className="form-group">
+                      <label style={{ fontSize: '0.85rem', fontWeight: 600, display: 'block', marginBottom: '0.3rem' }}>Ciudad / Región</label>
+                      <input
+                        type="text"
+                        required
+                        value={settingsForm.city}
+                        onChange={(e) => setSettingsForm({ ...settingsForm, city: e.target.value })}
+                        className="luxury-input"
+                        style={{ width: '100%' }}
+                      />
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1rem', marginBottom: '1rem' }}>
+                    <div className="form-group">
+                      <label style={{ fontSize: '0.85rem', fontWeight: 600, display: 'block', marginBottom: '0.3rem' }}>Horario Lunes a Sábado</label>
+                      <input
+                        type="text"
+                        value={settingsForm.scheduleWeekdays}
+                        onChange={(e) => setSettingsForm({ ...settingsForm, scheduleWeekdays: e.target.value })}
+                        className="luxury-input"
+                        style={{ width: '100%' }}
+                      />
+                    </div>
+
+                    <div className="form-group">
+                      <label style={{ fontSize: '0.85rem', fontWeight: 600, display: 'block', marginBottom: '0.3rem' }}>Horario Domingos / Festivos</label>
+                      <input
+                        type="text"
+                        value={settingsForm.scheduleWeekends}
+                        onChange={(e) => setSettingsForm({ ...settingsForm, scheduleWeekends: e.target.value })}
+                        className="luxury-input"
+                        style={{ width: '100%' }}
+                      />
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1rem', marginBottom: '1rem' }}>
+                    <div className="form-group">
+                      <label style={{ fontSize: '0.85rem', fontWeight: 600, display: 'block', marginBottom: '0.3rem' }}>Instagram URL</label>
+                      <input
+                        type="url"
+                        value={settingsForm.instagramUrl}
+                        onChange={(e) => setSettingsForm({ ...settingsForm, instagramUrl: e.target.value })}
+                        className="luxury-input"
+                        style={{ width: '100%' }}
+                      />
+                    </div>
+
+                    <div className="form-group">
+                      <label style={{ fontSize: '0.85rem', fontWeight: 600, display: 'block', marginBottom: '0.3rem' }}>Facebook URL (Opcional)</label>
+                      <input
+                        type="url"
+                        value={settingsForm.facebookUrl}
+                        onChange={(e) => setSettingsForm({ ...settingsForm, facebookUrl: e.target.value })}
+                        className="luxury-input"
+                        placeholder="https://facebook.com/..."
+                        style={{ width: '100%' }}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="form-group" style={{ marginBottom: '1rem' }}>
+                    <label style={{ fontSize: '0.85rem', fontWeight: 600, display: 'block', marginBottom: '0.3rem' }}>Google Maps Embed URL</label>
+                    <input
+                      type="text"
+                      value={settingsForm.googleMapsEmbedUrl}
+                      onChange={(e) => setSettingsForm({ ...settingsForm, googleMapsEmbedUrl: e.target.value })}
+                      className="luxury-input"
+                      placeholder="https://www.google.com/maps/embed?pb=..."
+                      style={{ width: '100%' }}
+                    />
+                  </div>
+
+                  <div className="form-group" style={{ marginBottom: '1.5rem' }}>
+                    <label style={{ fontSize: '0.85rem', fontWeight: 600, display: 'block', marginBottom: '0.3rem' }}>Zonas de Cobertura y Entrega</label>
+                    <textarea
+                      rows="2"
+                      value={settingsForm.deliveryNotes}
+                      onChange={(e) => setSettingsForm({ ...settingsForm, deliveryNotes: e.target.value })}
+                      className="luxury-input"
+                      style={{ width: '100%' }}
+                    />
+                  </div>
+
+                  <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end', borderTop: '1px solid #E5E7EB', paddingTop: '1.25rem' }}>
+                    <button
+                      type="button"
+                      onClick={() => setActiveSettingsModal(null)}
+                      style={{ padding: '0.75rem 1.25rem', backgroundColor: '#F3F4F6', color: '#374151', border: 'none', borderRadius: '6px', fontWeight: 600, cursor: 'pointer' }}
+                    >
+                      Cancelar
+                    </button>
+                    <button
+                      type="submit"
+                      className="btn-primary"
+                      style={{ padding: '0.75rem 1.5rem', cursor: 'pointer' }}
+                    >
+                      💾 Guardar Cambios
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          )}
+
+          {/* ================= MODAL 2: HERO BANNER & CAMPAIGN ================= */}
+          {activeSettingsModal === 'hero' && (
+            <div style={{
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              backgroundColor: 'rgba(0, 0, 0, 0.6)',
+              backdropFilter: 'blur(3px)',
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center',
+              zIndex: 9999,
+              padding: '1rem'
+            }}>
+              <div style={{
+                backgroundColor: '#FFF',
+                borderRadius: '12px',
+                width: '100%',
+                maxWidth: '650px',
+                maxHeight: '90vh',
+                overflowY: 'auto',
+                padding: '2rem',
+                boxShadow: '0 25px 50px rgba(0,0,0,0.2)'
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', borderBottom: '1px solid #E5E7EB', paddingBottom: '1rem' }}>
+                  <div>
+                    <h3 style={{ margin: 0, fontSize: '1.4rem', color: '#1E293B' }}>🎨 Portada Web (Banner Hero)</h3>
+                    <p style={{ margin: '0.25rem 0 0 0', color: '#64748B', fontSize: '0.85rem' }}>
+                      Configura el aspecto principal de la página de inicio.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setActiveSettingsModal(null)}
+                    style={{ background: 'none', border: 'none', fontSize: '1.5rem', cursor: 'pointer', color: '#9CA3AF' }}
+                  >
+                    ✕
+                  </button>
+                </div>
+
+                {/* Live Hero Preview Box */}
+                <div style={{
+                  position: 'relative',
+                  height: '190px',
+                  borderRadius: '8px',
+                  overflow: 'hidden',
+                  backgroundImage: `url('${api.getImageUrl(settingsForm.heroImageUrl) || '/images/hero-floral.jpg'}')`,
+                  backgroundSize: 'cover',
+                  backgroundPosition: 'center',
+                  marginBottom: '1.5rem',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  justifyContent: 'flex-end',
+                  padding: '1.25rem',
+                  boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
+                }}>
+                  <div style={{
+                    position: 'absolute',
+                    inset: 0,
+                    background: 'linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.35) 60%, rgba(0,0,0,0.1) 100%)'
+                  }} />
+                  <div style={{ position: 'relative', zIndex: 1 }}>
+                    <span style={{
+                      display: 'inline-block',
+                      fontSize: '0.7rem',
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.1em',
+                      color: '#F9D5E5',
+                      fontWeight: 600,
+                      marginBottom: '0.25rem'
+                    }}>
+                      {settingsForm.heroTag || 'Colección Floral'}
+                    </span>
+                    <h4 style={{
+                      margin: 0,
+                      color: '#FFF',
+                      fontSize: '1.1rem',
+                      fontWeight: 600,
+                      lineHeight: 1.3,
+                      textShadow: '0 2px 4px rgba(0,0,0,0.5)'
+                    }}>
+                      {settingsForm.heroTitle || 'Arreglos florales hechos con pasión'}
+                    </h4>
+                  </div>
+                </div>
+
+                {/* Upload Photo Button & Input */}
+                <div style={{ marginBottom: '1.25rem' }}>
+                  <label style={{ fontSize: '0.85rem', fontWeight: 600, display: 'block', marginBottom: '0.4rem' }}>
+                    Foto de Portada
+                  </label>
                   <label style={{
-                    flex: 1,
-                    padding: '0.65rem 1rem',
+                    display: 'block',
+                    padding: '0.75rem 1rem',
                     backgroundColor: '#F3F4F6',
                     border: '1px dashed #9CA3AF',
                     borderRadius: '6px',
@@ -1635,8 +2253,7 @@ export const Admin = () => {
                     cursor: uploadingHeroImage ? 'not-allowed' : 'pointer',
                     fontSize: '0.85rem',
                     fontWeight: 500,
-                    color: '#374151',
-                    display: 'block'
+                    color: '#374151'
                   }}>
                     <input
                       type="file"
@@ -1647,274 +2264,351 @@ export const Admin = () => {
                     />
                     {uploadingHeroImage ? '⏳ Subiendo foto...' : '📷 Subir foto desde tu dispositivo'}
                   </label>
-                </div>
-                
-                <div style={{ marginTop: '0.6rem' }}>
-                  <input
-                    type="text"
-                    placeholder="O escribe la ruta / URL de la imagen..."
-                    value={settingsForm.heroImageUrl}
-                    onChange={(e) => setSettingsForm({ ...settingsForm, heroImageUrl: e.target.value })}
-                    className="luxury-input"
-                    style={{ width: '100%', fontSize: '0.8rem', padding: '0.5rem 0.75rem' }}
-                  />
-                </div>
 
-                {/* Quick Presets */}
-                <div style={{ marginTop: '0.75rem' }}>
-                  <span style={{ fontSize: '0.75rem', color: '#666', display: 'block', marginBottom: '0.3rem' }}>
-                    Fotos sugeridas de catálogo:
-                  </span>
-                  <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
-                    {[
-                      { label: '🌸 Floral Original', url: '/images/hero-floral.jpg' },
-                      { label: '🌹 Rosas Rojas', url: '/images/roses-bouquet.jpg' },
-                      { label: '🏺 Centro Rosas', url: '/images/centerpiece-pink.jpg' },
-                      { label: '❤️ Romance', url: '/images/occasion-love.jpg' },
-                      { label: '🎂 Celebración', url: '/images/occasion-birthday.jpg' }
-                    ].map(preset => (
-                      <button
-                        key={preset.url}
-                        type="button"
-                        onClick={() => setSettingsForm({ ...settingsForm, heroImageUrl: preset.url })}
-                        style={{
-                          padding: '0.25rem 0.5rem',
-                          fontSize: '0.72rem',
-                          borderRadius: '4px',
-                          border: settingsForm.heroImageUrl === preset.url ? '1px solid var(--color-burgundy)' : '1px solid #E5E7EB',
-                          backgroundColor: settingsForm.heroImageUrl === preset.url ? '#FDF2F8' : '#F9FAFB',
-                          color: settingsForm.heroImageUrl === preset.url ? 'var(--color-burgundy)' : '#4B5563',
-                          cursor: 'pointer'
-                        }}
-                      >
-                        {preset.label}
-                      </button>
-                    ))}
+                  <div style={{ marginTop: '0.6rem' }}>
+                    <input
+                      type="text"
+                      placeholder="O escribe la ruta / URL de la imagen..."
+                      value={settingsForm.heroImageUrl}
+                      onChange={(e) => setSettingsForm({ ...settingsForm, heroImageUrl: e.target.value })}
+                      className="luxury-input"
+                      style={{ width: '100%', fontSize: '0.85rem', padding: '0.55rem 0.75rem' }}
+                    />
+                  </div>
+
+                  {/* Quick Presets */}
+                  <div style={{ marginTop: '0.75rem' }}>
+                    <span style={{ fontSize: '0.75rem', color: '#666', display: 'block', marginBottom: '0.3rem' }}>
+                      Fotos sugeridas de catálogo:
+                    </span>
+                    <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
+                      {[
+                        { label: '🌸 Floral Original', url: '/images/hero-floral.jpg' },
+                        { label: '🌹 Rosas Rojas', url: '/images/roses-bouquet.jpg' },
+                        { label: '🏺 Centro Rosas', url: '/images/centerpiece-pink.jpg' },
+                        { label: '❤️ Romance', url: '/images/occasion-love.jpg' },
+                        { label: '🎂 Celebración', url: '/images/occasion-birthday.jpg' }
+                      ].map(preset => (
+                        <button
+                          key={preset.url}
+                          type="button"
+                          onClick={() => setSettingsForm({ ...settingsForm, heroImageUrl: preset.url })}
+                          style={{
+                            padding: '0.25rem 0.5rem',
+                            fontSize: '0.72rem',
+                            borderRadius: '4px',
+                            border: settingsForm.heroImageUrl === preset.url ? '1px solid var(--color-burgundy)' : '1px solid #E5E7EB',
+                            backgroundColor: settingsForm.heroImageUrl === preset.url ? '#FDF2F8' : '#F9FAFB',
+                            color: settingsForm.heroImageUrl === preset.url ? 'var(--color-burgundy)' : '#4B5563',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          {preset.label}
+                        </button>
+                      ))}
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              {/* Hero Tag & Title Inputs */}
-              <div style={{ marginBottom: '1rem' }}>
-                <label style={{ fontSize: '0.85rem', fontWeight: 600, display: 'block', marginBottom: '0.3rem' }}>
-                  Etiqueta Superior (Campaña / Ocasión)
-                </label>
-                <input
-                  type="text"
-                  placeholder="Ej. Especial Día de la Madre, Amor y Amistad, etc."
-                  value={settingsForm.heroTag}
-                  onChange={(e) => setSettingsForm({ ...settingsForm, heroTag: e.target.value })}
-                  className="luxury-input"
-                  style={{ width: '100%', fontSize: '0.85rem' }}
-                />
-              </div>
-
-              <div style={{ marginBottom: '1.25rem' }}>
-                <label style={{ fontSize: '0.85rem', fontWeight: 600, display: 'block', marginBottom: '0.3rem' }}>
-                  Título Principal de Portada
-                </label>
-                <input
-                  type="text"
-                  placeholder="Ej. Arreglos florales hechos con pasión artesanal"
-                  value={settingsForm.heroTitle}
-                  onChange={(e) => setSettingsForm({ ...settingsForm, heroTitle: e.target.value })}
-                  className="luxury-input"
-                  style={{ width: '100%', fontSize: '0.85rem' }}
-                />
-              </div>
-
-              <button
-                type="button"
-                onClick={handleSaveSettings}
-                className="btn-primary"
-                style={{ width: '100%', padding: '0.75rem', cursor: 'pointer', fontSize: '0.9rem' }}
-              >
-                ✨ Guardar Portada Web
-              </button>
-            </div>
-
-            {/* Instant Notifications Card (Telegram & Webhook) */}
-            <div style={{ backgroundColor: '#FFF', border: '1px solid #E5E7EB', borderRadius: '8px', padding: '2rem', marginBottom: '2rem' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                <h3 style={{ fontSize: '1.4rem', margin: 0 }}>⚡ Notificaciones de Pedidos</h3>
-                <span style={{ fontSize: '0.75rem', backgroundColor: '#E0F2FE', color: '#0369A1', padding: '0.2rem 0.6rem', borderRadius: '12px', fontWeight: 600 }}>
-                  Telegram & Webhook
-                </span>
-              </div>
-              <p style={{ color: '#666', fontSize: '0.85rem', marginBottom: '1.25rem' }}>
-                Recibe una alerta inmediata en tu celular o grupo de trabajo cada vez que entra un nuevo pedido con el detalle completo de entrega y dedicatoria.
-              </p>
-
-              <div style={{ backgroundColor: '#F0F9FF', border: '1px solid #BAE6FD', borderRadius: '6px', padding: '0.85rem 1rem', marginBottom: '1.25rem', fontSize: '0.8rem', color: '#0C4A6E', lineHeight: '1.5' }}>
-                <strong>💡 ¿Cómo conectar tu Bot de Telegram en 2 pasos?</strong>
-                <ol style={{ margin: '0.5rem 0 0 1rem', padding: 0 }}>
-                  <li>Abre Telegram y escribe a <code>@BotFather</code>. Crea tu bot con el comando <code>/newbot</code> y copia el <strong>Token</strong>.</li>
-                  <li>Inicia el bot o agrégalo a tu grupo. Luego consulta tu <strong>Chat ID</strong> con <code>@userinfobot</code>.</li>
-                </ol>
-              </div>
-
-              <div className="form-group" style={{ marginBottom: '1rem' }}>
-                <label style={{ fontSize: '0.85rem', fontWeight: 600, display: 'block', marginBottom: '0.3rem' }}>
-                  Telegram Bot Token
-                </label>
-                <input
-                  type="text"
-                  placeholder="Ej: 7123456789:AAHk...xyz"
-                  value={settingsForm.telegramBotToken}
-                  onChange={(e) => setSettingsForm({ ...settingsForm, telegramBotToken: e.target.value })}
-                  className="luxury-input"
-                  style={{ width: '100%', fontSize: '0.85rem' }}
-                />
-              </div>
-
-              <div className="form-group" style={{ marginBottom: '1.25rem' }}>
-                <label style={{ fontSize: '0.85rem', fontWeight: 600, display: 'block', marginBottom: '0.3rem' }}>
-                  Telegram Chat ID
-                </label>
-                <input
-                  type="text"
-                  placeholder="Ej: 123456789 (o grupo: -100123456789)"
-                  value={settingsForm.telegramChatId}
-                  onChange={(e) => setSettingsForm({ ...settingsForm, telegramChatId: e.target.value })}
-                  className="luxury-input"
-                  style={{ width: '100%', fontSize: '0.85rem' }}
-                />
-              </div>
-
-              <div className="form-group" style={{ marginBottom: '1.5rem' }}>
-                <label style={{ fontSize: '0.85rem', fontWeight: 600, display: 'block', marginBottom: '0.3rem' }}>
-                  Webhook URL (Opcional - WhatsApp / Zapier / Make / n8n)
-                </label>
-                <input
-                  type="url"
-                  placeholder="https://tu-endpoint-o-whatsapp-api.com/webhook"
-                  value={settingsForm.webhookUrl}
-                  onChange={(e) => setSettingsForm({ ...settingsForm, webhookUrl: e.target.value })}
-                  className="luxury-input"
-                  style={{ width: '100%', fontSize: '0.85rem' }}
-                />
-                <span style={{ fontSize: '0.75rem', color: '#666', display: 'block', marginTop: '0.25rem' }}>
-                  Dispara un POST JSON con los datos del pedido a tu servicio de mensajería o CRM externo.
-                </span>
-              </div>
-
-              <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
-                <button
-                  type="button"
-                  onClick={handleTestTelegram}
-                  disabled={testingTelegram || !settingsForm.telegramBotToken || !settingsForm.telegramChatId}
-                  style={{
-                    flex: '1',
-                    minWidth: '150px',
-                    padding: '0.75rem 1rem',
-                    backgroundColor: '#0284C7',
-                    color: '#FFF',
-                    border: 'none',
-                    borderRadius: '6px',
-                    fontWeight: 600,
-                    fontSize: '0.85rem',
-                    cursor: (testingTelegram || !settingsForm.telegramBotToken || !settingsForm.telegramChatId) ? 'not-allowed' : 'pointer',
-                    opacity: (!settingsForm.telegramBotToken || !settingsForm.telegramChatId) ? 0.6 : 1
-                  }}
-                >
-                  {testingTelegram ? 'Enviando...' : '✈️ Probar Telegram'}
-                </button>
-
-                <button
-                  type="button"
-                  onClick={handleSaveSettings}
-                  className="btn-primary"
-                  style={{ flex: '1', minWidth: '150px', padding: '0.75rem 1rem', fontSize: '0.85rem', cursor: 'pointer' }}
-                >
-                  💾 Guardar Alertas
-                </button>
-              </div>
-            </div>
-
-            {/* Change Password Card */}
-            <div style={{ backgroundColor: '#FFF', border: '1px solid #E5E7EB', borderRadius: '8px', padding: '2rem', marginBottom: '2rem' }}>
-              <h3 style={{ fontSize: '1.4rem', marginTop: 0, marginBottom: '0.5rem' }}>🔐 Seguridad de la Cuenta</h3>
-              <p style={{ color: '#666', fontSize: '0.85rem', marginBottom: '1.5rem' }}>
-                Cambia la contraseña de acceso al panel de administración.
-              </p>
-
-              <form onSubmit={handleChangePassword} className="luxury-form">
-                <div className="form-group" style={{ marginBottom: '1rem' }}>
-                  <label style={{ fontSize: '0.85rem', fontWeight: 600, display: 'block', marginBottom: '0.3rem' }}>Contraseña Actual</label>
+                {/* Hero Tag & Title Inputs */}
+                <div style={{ marginBottom: '1rem' }}>
+                  <label style={{ fontSize: '0.85rem', fontWeight: 600, display: 'block', marginBottom: '0.3rem' }}>
+                    Etiqueta Superior (Campaña / Ocasión)
+                  </label>
                   <input
-                    type="password"
-                    required
-                    value={passwordForm.currentPassword}
-                    onChange={(e) => setPasswordForm({ ...passwordForm, currentPassword: e.target.value })}
+                    type="text"
+                    placeholder="Ej. Especial Día de la Madre, Amor y Amistad, etc."
+                    value={settingsForm.heroTag}
+                    onChange={(e) => setSettingsForm({ ...settingsForm, heroTag: e.target.value })}
                     className="luxury-input"
-                    placeholder="••••••••"
-                    style={{ width: '100%' }}
+                    style={{ width: '100%', fontSize: '0.85rem' }}
                   />
                 </div>
 
-                <div className="form-group" style={{ marginBottom: '1rem' }}>
-                  <label style={{ fontSize: '0.85rem', fontWeight: 600, display: 'block', marginBottom: '0.3rem' }}>Nueva Contraseña</label>
+                <div style={{ marginBottom: '1.5rem' }}>
+                  <label style={{ fontSize: '0.85rem', fontWeight: 600, display: 'block', marginBottom: '0.3rem' }}>
+                    Título Principal de Portada
+                  </label>
                   <input
-                    type="password"
-                    required
-                    minLength="6"
-                    value={passwordForm.newPassword}
-                    onChange={(e) => setPasswordForm({ ...passwordForm, newPassword: e.target.value })}
+                    type="text"
+                    placeholder="Ej. Arreglos florales hechos con pasión artesanal"
+                    value={settingsForm.heroTitle}
+                    onChange={(e) => setSettingsForm({ ...settingsForm, heroTitle: e.target.value })}
                     className="luxury-input"
-                    placeholder="••••••••"
-                    style={{ width: '100%' }}
+                    style={{ width: '100%', fontSize: '0.85rem' }}
+                  />
+                </div>
+
+                <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end', borderTop: '1px solid #E5E7EB', paddingTop: '1.25rem' }}>
+                  <button
+                    type="button"
+                    onClick={() => setActiveSettingsModal(null)}
+                    style={{ padding: '0.75rem 1.25rem', backgroundColor: '#F3F4F6', color: '#374151', border: 'none', borderRadius: '6px', fontWeight: 600, cursor: 'pointer' }}
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleSaveSettings}
+                    className="btn-primary"
+                    style={{ padding: '0.75rem 1.5rem', cursor: 'pointer' }}
+                  >
+                    ✨ Guardar Portada
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ================= MODAL 3: INSTANT NOTIFICATIONS ================= */}
+          {activeSettingsModal === 'notifications' && (
+            <div style={{
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              backgroundColor: 'rgba(0, 0, 0, 0.6)',
+              backdropFilter: 'blur(3px)',
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center',
+              zIndex: 9999,
+              padding: '1rem'
+            }}>
+              <div style={{
+                backgroundColor: '#FFF',
+                borderRadius: '12px',
+                width: '100%',
+                maxWidth: '650px',
+                maxHeight: '90vh',
+                overflowY: 'auto',
+                padding: '2rem',
+                boxShadow: '0 25px 50px rgba(0,0,0,0.2)'
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', borderBottom: '1px solid #E5E7EB', paddingBottom: '1rem' }}>
+                  <div>
+                    <h3 style={{ margin: 0, fontSize: '1.4rem', color: '#1E293B' }}>⚡ Alertas de Pedidos (Telegram & Webhook)</h3>
+                    <p style={{ margin: '0.25rem 0 0 0', color: '#64748B', fontSize: '0.85rem' }}>
+                      Notificaciones instantáneas de cada compra a tu celular o CRM.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setActiveSettingsModal(null)}
+                    style={{ background: 'none', border: 'none', fontSize: '1.5rem', cursor: 'pointer', color: '#9CA3AF' }}
+                  >
+                    ✕
+                  </button>
+                </div>
+
+                <div style={{ backgroundColor: '#F0F9FF', border: '1px solid #BAE6FD', borderRadius: '8px', padding: '1rem', marginBottom: '1.25rem', fontSize: '0.82rem', color: '#0C4A6E', lineHeight: '1.5' }}>
+                  <strong>💡 ¿Cómo conectar tu Bot de Telegram en 2 pasos?</strong>
+                  <ol style={{ margin: '0.5rem 0 0 1rem', padding: 0 }}>
+                    <li>Abre Telegram y escribe a <code>@BotFather</code>. Crea tu bot con el comando <code>/newbot</code> y copia el <strong>Token</strong>.</li>
+                    <li>Inicia el bot o agrégalo a tu grupo. Luego consulta tu <strong>Chat ID</strong> con <code>@userinfobot</code>.</li>
+                  </ol>
+                </div>
+
+                <div className="form-group" style={{ marginBottom: '1rem' }}>
+                  <label style={{ fontSize: '0.85rem', fontWeight: 600, display: 'block', marginBottom: '0.3rem' }}>
+                    Telegram Bot Token
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Ej: 7123456789:AAHk...xyz"
+                    value={settingsForm.telegramBotToken}
+                    onChange={(e) => setSettingsForm({ ...settingsForm, telegramBotToken: e.target.value })}
+                    className="luxury-input"
+                    style={{ width: '100%', fontSize: '0.85rem' }}
+                  />
+                </div>
+
+                <div className="form-group" style={{ marginBottom: '1.25rem' }}>
+                  <label style={{ fontSize: '0.85rem', fontWeight: 600, display: 'block', marginBottom: '0.3rem' }}>
+                    Telegram Chat ID
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Ej: 123456789 (o para grupo: -100123456789)"
+                    value={settingsForm.telegramChatId}
+                    onChange={(e) => setSettingsForm({ ...settingsForm, telegramChatId: e.target.value })}
+                    className="luxury-input"
+                    style={{ width: '100%', fontSize: '0.85rem' }}
                   />
                 </div>
 
                 <div className="form-group" style={{ marginBottom: '1.5rem' }}>
-                  <label style={{ fontSize: '0.85rem', fontWeight: 600, display: 'block', marginBottom: '0.3rem' }}>Confirmar Nueva Contraseña</label>
+                  <label style={{ fontSize: '0.85rem', fontWeight: 600, display: 'block', marginBottom: '0.3rem' }}>
+                    Webhook URL (Opcional - WhatsApp / Zapier / Make / n8n)
+                  </label>
                   <input
-                    type="password"
-                    required
-                    minLength="6"
-                    value={passwordForm.confirmPassword}
-                    onChange={(e) => setPasswordForm({ ...passwordForm, confirmPassword: e.target.value })}
+                    type="url"
+                    placeholder="https://tu-endpoint-o-whatsapp-api.com/webhook"
+                    value={settingsForm.webhookUrl}
+                    onChange={(e) => setSettingsForm({ ...settingsForm, webhookUrl: e.target.value })}
                     className="luxury-input"
-                    placeholder="••••••••"
-                    style={{ width: '100%' }}
+                    style={{ width: '100%', fontSize: '0.85rem' }}
                   />
+                  <span style={{ fontSize: '0.75rem', color: '#666', display: 'block', marginTop: '0.25rem' }}>
+                    Envía un POST JSON con los datos del pedido a tu servicio externo al confirmarse una orden.
+                  </span>
                 </div>
 
-                <button
-                  type="submit"
-                  disabled={passwordLoading}
-                  style={{
-                    width: '100%',
-                    padding: '0.85rem',
-                    backgroundColor: '#1E293B',
-                    color: '#FFF',
-                    border: 'none',
-                    borderRadius: '6px',
-                    fontWeight: 600,
-                    cursor: 'pointer'
-                  }}
-                >
-                  {passwordLoading ? 'Actualizando...' : '🔒 Actualizar Contraseña'}
-                </button>
-              </form>
-            </div>
+                <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #E5E7EB', paddingTop: '1.25rem' }}>
+                  <button
+                    type="button"
+                    onClick={handleTestTelegram}
+                    disabled={testingTelegram || !settingsForm.telegramBotToken || !settingsForm.telegramChatId}
+                    style={{
+                      padding: '0.75rem 1rem',
+                      backgroundColor: '#0284C7',
+                      color: '#FFF',
+                      border: 'none',
+                      borderRadius: '6px',
+                      fontWeight: 600,
+                      fontSize: '0.85rem',
+                      cursor: (testingTelegram || !settingsForm.telegramBotToken || !settingsForm.telegramChatId) ? 'not-allowed' : 'pointer',
+                      opacity: (!settingsForm.telegramBotToken || !settingsForm.telegramChatId) ? 0.6 : 1
+                    }}
+                  >
+                    {testingTelegram ? 'Enviando...' : '✈️ Probar Telegram'}
+                  </button>
 
-            {/* Quick Live Preview of Map */}
-            {settingsForm.googleMapsEmbedUrl && (
-              <div style={{ backgroundColor: '#FFF', border: '1px solid #E5E7EB', borderRadius: '8px', padding: '1.5rem' }}>
-                <h4 style={{ margin: '0 0 0.75rem 0', fontSize: '1rem' }}>🗺️ Vista Previa del Mapa</h4>
-                <iframe
-                  title="Google Maps Preview"
-                  src={settingsForm.googleMapsEmbedUrl}
-                  width="100%"
-                  height="200"
-                  style={{ border: 0, borderRadius: '6px' }}
-                  allowFullScreen=""
-                  loading="lazy"
-                />
+                  <div style={{ display: 'flex', gap: '0.75rem' }}>
+                    <button
+                      type="button"
+                      onClick={() => setActiveSettingsModal(null)}
+                      style={{ padding: '0.75rem 1.25rem', backgroundColor: '#F3F4F6', color: '#374151', border: 'none', borderRadius: '6px', fontWeight: 600, cursor: 'pointer' }}
+                    >
+                      Cancelar
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleSaveSettings}
+                      className="btn-primary"
+                      style={{ padding: '0.75rem 1.5rem', cursor: 'pointer' }}
+                    >
+                      💾 Guardar Alertas
+                    </button>
+                  </div>
+                </div>
               </div>
-            )}
-          </div>
+            </div>
+          )}
+
+          {/* ================= MODAL 4: SECURITY & PASSWORD ================= */}
+          {activeSettingsModal === 'security' && (
+            <div style={{
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              backgroundColor: 'rgba(0, 0, 0, 0.6)',
+              backdropFilter: 'blur(3px)',
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center',
+              zIndex: 9999,
+              padding: '1rem'
+            }}>
+              <div style={{
+                backgroundColor: '#FFF',
+                borderRadius: '12px',
+                width: '100%',
+                maxWidth: '520px',
+                maxHeight: '90vh',
+                overflowY: 'auto',
+                padding: '2rem',
+                boxShadow: '0 25px 50px rgba(0,0,0,0.2)'
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', borderBottom: '1px solid #E5E7EB', paddingBottom: '1rem' }}>
+                  <div>
+                    <h3 style={{ margin: 0, fontSize: '1.4rem', color: '#1E293B' }}>🔐 Cambiar Contraseña</h3>
+                    <p style={{ margin: '0.25rem 0 0 0', color: '#64748B', fontSize: '0.85rem' }}>
+                      Actualiza las credenciales de acceso para el usuario <strong>admin</strong>.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setActiveSettingsModal(null)}
+                    style={{ background: 'none', border: 'none', fontSize: '1.5rem', cursor: 'pointer', color: '#9CA3AF' }}
+                  >
+                    ✕
+                  </button>
+                </div>
+
+                <form onSubmit={handleChangePassword} className="luxury-form">
+                  <div className="form-group" style={{ marginBottom: '1rem' }}>
+                    <label style={{ fontSize: '0.85rem', fontWeight: 600, display: 'block', marginBottom: '0.3rem' }}>Contraseña Actual</label>
+                    <input
+                      type="password"
+                      required
+                      value={passwordForm.currentPassword}
+                      onChange={(e) => setPasswordForm({ ...passwordForm, currentPassword: e.target.value })}
+                      className="luxury-input"
+                      placeholder="••••••••"
+                      style={{ width: '100%' }}
+                    />
+                  </div>
+
+                  <div className="form-group" style={{ marginBottom: '1rem' }}>
+                    <label style={{ fontSize: '0.85rem', fontWeight: 600, display: 'block', marginBottom: '0.3rem' }}>Nueva Contraseña</label>
+                    <input
+                      type="password"
+                      required
+                      minLength="6"
+                      value={passwordForm.newPassword}
+                      onChange={(e) => setPasswordForm({ ...passwordForm, newPassword: e.target.value })}
+                      className="luxury-input"
+                      placeholder="Mínimo 6 caracteres"
+                      style={{ width: '100%' }}
+                    />
+                  </div>
+
+                  <div className="form-group" style={{ marginBottom: '1.5rem' }}>
+                    <label style={{ fontSize: '0.85rem', fontWeight: 600, display: 'block', marginBottom: '0.3rem' }}>Confirmar Nueva Contraseña</label>
+                    <input
+                      type="password"
+                      required
+                      minLength="6"
+                      value={passwordForm.confirmPassword}
+                      onChange={(e) => setPasswordForm({ ...passwordForm, confirmPassword: e.target.value })}
+                      className="luxury-input"
+                      placeholder="Repite la nueva contraseña"
+                      style={{ width: '100%' }}
+                    />
+                  </div>
+
+                  <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end', borderTop: '1px solid #E5E7EB', paddingTop: '1.25rem' }}>
+                    <button
+                      type="button"
+                      onClick={() => setActiveSettingsModal(null)}
+                      style={{ padding: '0.75rem 1.25rem', backgroundColor: '#F3F4F6', color: '#374151', border: 'none', borderRadius: '6px', fontWeight: 600, cursor: 'pointer' }}
+                    >
+                      Cancelar
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={passwordLoading}
+                      style={{
+                        padding: '0.75rem 1.5rem',
+                        backgroundColor: '#1E293B',
+                        color: '#FFF',
+                        border: 'none',
+                        borderRadius: '6px',
+                        fontWeight: 600,
+                        cursor: passwordLoading ? 'not-allowed' : 'pointer'
+                      }}
+                    >
+                      {passwordLoading ? 'Actualizando...' : '🔒 Actualizar Contraseña'}
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          )}
         </div>
       )}
 

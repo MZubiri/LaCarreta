@@ -47,13 +47,13 @@ export const TrackOrder = () => {
     const s = status.toLowerCase();
     if (s.includes('entregado') || s.includes('completado')) return 4;
     if (s.includes('camino') || s.includes('ruta')) return 3;
-    if (s.includes('preparaci') || s.includes('proceso') || s.includes('taller')) return 2;
+    if (s.includes('preparaci') || s.includes('proceso') || s.includes('florer') || s.includes('armando') || s.includes('taller')) return 2;
     if (s.includes('cancelado')) return -1;
     return 1; // Pendiente / Recibido
   };
 
   const steps = [
-    { num: 1, title: 'Pedido Recibido', desc: 'Confirmado en nuestro taller', icon: '📝' },
+    { num: 1, title: 'Pedido Recibido', desc: 'Confirmado en nuestra florería', icon: '📝' },
     { num: 2, title: 'En Preparación', desc: 'Floristas armando el arreglo', icon: '🌸' },
     { num: 3, title: 'En Camino', desc: 'Mensajero en ruta', icon: '🛵' },
     { num: 4, title: 'Entregado', desc: '¡Entregado con éxito!', icon: '🎁' }
@@ -67,19 +67,12 @@ export const TrackOrder = () => {
           Rastrea tu Pedido Floral
         </h1>
         <p style={{ color: '#666', maxWidth: '550px', margin: '0 auto', fontSize: '0.95rem' }}>
-          Consulta el estado de preparación y entrega de tus flores en Caldas y el Valle de Aburrá.
+          Consulta el estado de preparación y entrega de tus flores en Medellín.
         </p>
       </header>
 
       {/* Search Input Box */}
-      <div style={{
-        backgroundColor: '#FFF',
-        border: '1px solid var(--color-border)',
-        borderRadius: '8px',
-        padding: '1.75rem',
-        boxShadow: '0 4px 20px rgba(0,0,0,0.04)',
-        marginBottom: '2.5rem'
-      }}>
+      <div className="track-search-card">
         <form onSubmit={handleSubmit} style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
           <input
             type="text"
@@ -88,7 +81,7 @@ export const TrackOrder = () => {
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Ingresa tu código de pedido (ej. FLC-2026-0001) o tu teléfono..."
             className="luxury-input"
-            style={{ flex: 1, minWidth: '260px', fontSize: '0.95rem', padding: '0.85rem 1rem' }}
+            style={{ flex: 1, minWidth: '0', fontSize: '0.95rem', padding: '0.85rem 1rem' }}
           />
           <button
             type="submit"
@@ -130,13 +123,7 @@ export const TrackOrder = () => {
             return (
               <div
                 key={order.id || order.orderCode}
-                style={{
-                  backgroundColor: '#FFF',
-                  border: '1px solid var(--color-border)',
-                  borderRadius: '10px',
-                  padding: '2rem',
-                  boxShadow: '0 6px 25px rgba(0,0,0,0.06)'
-                }}
+                className="track-order-card"
               >
                 {/* Header card with status pill */}
                 <div style={{
@@ -231,15 +218,7 @@ export const TrackOrder = () => {
                 )}
 
                 {/* Delivery Information Grid */}
-                <div style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
-                  gap: '1.25rem',
-                  backgroundColor: 'var(--color-bg-alt)',
-                  padding: '1.5rem',
-                  borderRadius: '8px',
-                  marginBottom: '1.5rem'
-                }}>
+                <div className="track-delivery-grid">
                   <div>
                     <h5 style={{ fontSize: '0.78rem', textTransform: 'uppercase', color: '#777', margin: '0 0 0.3rem 0' }}>
                       Destinatario & Teléfono
@@ -253,7 +232,7 @@ export const TrackOrder = () => {
                       Municipio & Dirección
                     </h5>
                     <p style={{ margin: 0, fontWeight: 600, fontSize: '0.95rem' }}>
-                      {order.deliveryMunicipality || 'Caldas, Antioquia'}
+                      {order.deliveryMunicipality || 'Medellín'}
                     </p>
                     <p style={{ margin: 0, color: '#666', fontSize: '0.85rem' }}>{order.deliveryAddress}</p>
                   </div>

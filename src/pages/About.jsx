@@ -20,15 +20,15 @@ export const About = () => {
       <section className="section container" style={{ paddingTop: '2rem' }}>
         <div className="about-split-grid">
           <div className="about-img-frame">
-            <img src="/images/hero-floral.jpg" alt="Taller de Florería La Carreta en Caldas" className="about-img-main" />
-            <span className="about-img-caption">Nuestro taller floral en Caldas, Antioquia</span>
+            <img src="/images/hero-floral.jpg" alt="Florería La Carreta en Medellín" className="about-img-main" />
+            <span className="about-img-caption">Florería La Carreta • Pasión floral en Medellín</span>
           </div>
 
           <div className="about-story-text">
             <span className="section-tag">Nuestra Filosofía</span>
-            <h2>Flores con alma nacidas en el Valle de Aburrá</h2>
+            <h2>Flores con alma nacidas para Medellín</h2>
             <p className="lead-paragraph">
-              Florería La Carreta nació con la misión de transformar los sentimientos en obras de arte vivas. En el pintoresco municipio de Caldas, Antioquia, creamos arreglos que celebran el amor, la memoria y la alegría de la vida.
+              Florería La Carreta nació con la misión de transformar los sentimientos en obras de arte vivas. Con esmero y dedicación artesanal, creamos arreglos que celebran el amor, la memoria y la alegría de la vida en todo Medellín.
             </p>
             <p>
               Seleccionamos cada flor matutina directamente de los mejores cultivos locales de la región antioqueña. Creemos firmemente que una flor natural tiene el poder único de transmitir lo que las palabras a menudo no logran expresar.
@@ -72,7 +72,7 @@ export const About = () => {
             <div className="process-card">
               <span className="process-number">04</span>
               <h3>Entrega Cuidadosa</h3>
-              <p>Transporte especializado a temperatura óptima en Caldas, Sabaneta, Envigado y Medellín.</p>
+              <p>Transporte especializado a temperatura óptima en todo Medellín, El Poblado, Laureles y municipios metropolitanos.</p>
             </div>
           </div>
         </div>
@@ -112,16 +112,17 @@ export const About = () => {
           <div className="coverage-box">
             <div className="coverage-content">
               <span className="section-tag">Cobertura de Entrega</span>
-              <h2>Entregas a domicilio en Antioquia</h2>
+              <h2>Entregas a domicilio en todo Medellín</h2>
               <p>
-                Llegamos a **Caldas**, Sabaneta, Envigado, Itagüí, La Estrella y la zona metropolitana de Medellín. Realizamos entregas el mismo día para pedidos confirmados antes del mediodía.
+                Llegamos a todo <strong>Medellín</strong> (El Poblado, Laureles, Belén, Centro, Norte), Envigado, Sabaneta e Itagüí. Realizamos entregas el mismo día para pedidos confirmados antes del mediodía.
               </p>
               <div className="coverage-tags">
-                <span className="coverage-tag">📍 Caldas</span>
-                <span className="coverage-tag">📍 Sabaneta</span>
-                <span className="coverage-tag">📍 Envigado</span>
-                <span className="coverage-tag">📍 Itagüí</span>
                 <span className="coverage-tag">📍 Medellín</span>
+                <span className="coverage-tag">📍 El Poblado</span>
+                <span className="coverage-tag">📍 Laureles</span>
+                <span className="coverage-tag">📍 Envigado</span>
+                <span className="coverage-tag">📍 Sabaneta</span>
+                <span className="coverage-tag">📍 Itagüí</span>
               </div>
             </div>
             <div className="coverage-action">

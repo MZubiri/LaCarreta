@@ -46,17 +46,31 @@ namespace FloreriaApi.Controllers
             var delivered = orders.Count(o => o.Status == "Entregado");
             var cancelled = orders.Count(o => o.Status == "Cancelado");
 
-            // Top Products
+            // Top Products with Image & Name resolution
+            var allProductsList = await _context.Products.ToListAsync();
+            var productLookup = allProductsList.ToDictionary(p => p.Id, p => p);
+
             var topProducts = orders
                 .Where(o => o.Status != "Cancelado")
                 .SelectMany(o => o.Items)
-                .GroupBy(i => new { i.ProductId, i.ProductName })
-                .Select(g => new TopProductDto
+                .GroupBy(i => i.ProductId)
+                .Select(g =>
                 {
-                    ProductId = g.Key.ProductId,
-                    ProductName = g.Key.ProductName,
-                    UnitsSold = g.Sum(i => i.Quantity),
-                    Revenue = g.Sum(i => i.TotalPrice)
+                    productLookup.TryGetValue(g.Key, out var matchedProd);
+                    var firstItem = g.FirstOrDefault();
+                    var resolvedName = !string.IsNullOrWhiteSpace(matchedProd?.NameEs) 
+                        ? matchedProd.NameEs 
+                        : (!string.IsNullOrWhiteSpace(firstItem?.ProductName) ? firstItem.ProductName : "Arreglo Floral");
+                    var resolvedImage = matchedProd?.Image ?? "";
+
+                    return new TopProductDto
+                    {
+                        ProductId = g.Key,
+                        ProductName = resolvedName,
+                        Image = resolvedImage,
+                        UnitsSold = g.Sum(i => i.Quantity),
+                        Revenue = g.Sum(i => i.TotalPrice)
+                    };
                 })
                 .OrderByDescending(tp => tp.UnitsSold)
                 .Take(5)

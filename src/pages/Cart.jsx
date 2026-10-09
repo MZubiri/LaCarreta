@@ -6,16 +6,18 @@ import { LanguageContext } from '../context/LanguageContext';
 import { generateWhatsAppLink, formatCOP } from '../utils/whatsapp';
 import { api } from '../services/api';
 import { useSiteSettings } from '../context/SiteSettingsContext';
+import { ValidationModal } from '../components/ValidationModal';
 
 export const DELIVERY_ZONES = [
-  { id: 'caldas', name: 'Caldas (Urbano / Local)', fee: 8000, description: 'Entrega local prioritaria' },
-  { id: 'la_estrella', name: 'La Estrella', fee: 10000, description: 'Valle de Aburrá Sur' },
-  { id: 'sabaneta', name: 'Sabaneta', fee: 12000, description: 'Valle de Aburrá Sur' },
-  { id: 'itagui', name: 'Itagüí', fee: 14000, description: 'Valle de Aburrá' },
-  { id: 'envigado', name: 'Envigado', fee: 16000, description: 'Valle de Aburrá' },
-  { id: 'medellin_sur', name: 'Medellín Sur (El Poblado, Guayabal)', fee: 18000, description: 'Zona Sur' },
-  { id: 'medellin_centro', name: 'Medellín (Centro, Laureles, Belén)', fee: 22000, description: 'Zona Centro / Occidente' },
-  { id: 'recoger', name: 'Recoger en Florería (Cra 49 # 131 Sur-69, Caldas)', fee: 0, description: '¡Gratis! Sin costo de envío' }
+  { id: 'medellin_sur', name: 'Medellín Sur (El Poblado, Guayabal)', fee: 18000, description: 'Zona Sur de Medellín' },
+  { id: 'medellin_centro', name: 'Medellín (Laureles, Belén, Centro, Estadio)', fee: 22000, description: 'Zona Centro / Occidente de Medellín' },
+  { id: 'medellin_norte', name: 'Medellín Norte / Robledo / Castilla', fee: 25000, description: 'Zona Norte de Medellín' },
+  { id: 'envigado', name: 'Envigado', fee: 16000, description: 'Área Metropolitana' },
+  { id: 'sabaneta', name: 'Sabaneta', fee: 12000, description: 'Área Metropolitana Sur' },
+  { id: 'itagui', name: 'Itagüí', fee: 14000, description: 'Área Metropolitana' },
+  { id: 'la_estrella', name: 'La Estrella', fee: 10000, description: 'Área Metropolitana Sur' },
+  { id: 'caldas', name: 'Caldas', fee: 8000, description: 'Área Metropolitana Sur' },
+  { id: 'recoger', name: 'Recoger en Florería (Punto de Entrega)', fee: 0, description: '¡Gratis! Sin costo de envío' }
 ];
 
 export const CARD_STYLES = [
@@ -42,7 +44,7 @@ export const Cart = () => {
     return `${year}-${month}-${day}`;
   }, []);
 
-  const [deliveryZoneId, setDeliveryZoneId] = useState('caldas');
+  const [deliveryZoneId, setDeliveryZoneId] = useState('medellin_sur');
   const [cardStyleId, setCardStyleId] = useState('clasica');
 
   const [formData, setFormData] = useState({
@@ -61,6 +63,15 @@ export const Cart = () => {
   const [createdOrderCode, setCreatedOrderCode] = useState('');
   const [submittingOrder, setSubmittingOrder] = useState(false);
   const [emailStatus, setEmailStatus] = useState('');
+
+  // Validation Modal state to replace browser alert
+  const [validationModal, setValidationModal] = useState({
+    isOpen: false,
+    title: '',
+    message: '',
+    missingFields: [],
+    firstFieldId: null
+  });
 
   // Delivery zone selected
   const activeZone = useMemo(() => {
@@ -90,11 +101,48 @@ export const Cart = () => {
     });
   };
 
+  const validateOrderForm = (requireEmail = false) => {
+    const missing = [];
+    if (!formData.name.trim()) {
+      missing.push({ id: 'name', label: 'Nombre completo (quién recibe)' });
+    }
+    if (!formData.phone.trim()) {
+      missing.push({ id: 'phone', label: 'Teléfono / WhatsApp de contacto' });
+    }
+    if (requireEmail && !formData.email.trim()) {
+      missing.push({ id: 'email', label: 'Correo electrónico (para enviarte la confirmación)' });
+    }
+    if (activeZone.id !== 'recoger' && !formData.address.trim()) {
+      const zoneName = activeZone.name.split('(')[0].trim();
+      missing.push({ id: 'address', label: `Dirección de entrega en ${zoneName}` });
+    }
+    if (!formData.date) {
+      missing.push({ id: 'date', label: 'Fecha de entrega deseada' });
+    }
+    return missing;
+  };
+
+  const handleFixField = (fieldId) => {
+    const targetId = fieldId || validationModal.firstFieldId;
+    setValidationModal((prev) => ({ ...prev, isOpen: false }));
+    if (targetId) {
+      setTimeout(() => {
+        const el = document.getElementById(targetId);
+        if (el) {
+          el.focus();
+          el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          el.classList.add('input-highlight-pulse');
+          setTimeout(() => el.classList.remove('input-highlight-pulse'), 1800);
+        }
+      }, 150);
+    }
+  };
+
   const prepareOrderPayload = () => ({
     customerName: formData.name,
     customerPhone: formData.phone,
     customerEmail: formData.email,
-    deliveryAddress: activeZone.id === 'recoger' ? 'Recoger en Florería (Cra 49 # 131 Sur-69, Caldas)' : formData.address,
+    deliveryAddress: activeZone.id === 'recoger' ? 'Recoger en Florería (Punto de Entrega)' : formData.address,
     deliveryMunicipality: activeZone.name,
     deliveryFee: activeZone.fee,
     deliveryDate: formData.date,
@@ -105,16 +153,25 @@ export const Cart = () => {
     specialNotes: formData.notes,
     items: items.map(item => ({
       productId: item.id || 0,
-      productName: language === 'en' ? (item.name_en || item.nameEn || item.name_es) : (item.name_es || item.nameEs),
+      productName: language === 'en' 
+        ? (item.name_en || item.nameEn || item.name_es || item.nameEs || item.name || 'Floral Arrangement') 
+        : (item.name_es || item.nameEs || item.name_en || item.nameEn || item.name || 'Arreglo Floral'),
       quantity: item.quantity,
-      unitPrice: item.price
+      unitPrice: Number(item.price) || 0
     }))
   });
 
   const handleWhatsAppOrder = async (e) => {
     e.preventDefault();
-    if (!formData.name || !formData.phone || (activeZone.id !== 'recoger' && !formData.address) || !formData.date) {
-      alert('Por favor completa los campos obligatorios (* Nombre, Teléfono, Dirección de Entrega y Fecha).');
+    const missing = validateOrderForm(false);
+    if (missing.length > 0) {
+      setValidationModal({
+        isOpen: true,
+        title: 'Faltan datos obligatorios para tu entrega',
+        message: 'Para garantizar que tu arreglo floral llegue perfecto y a tiempo a su destinatario, por favor completa los siguientes campos:',
+        missingFields: missing,
+        firstFieldId: missing[0].id
+      });
       return;
     }
 
@@ -148,8 +205,15 @@ export const Cart = () => {
 
   const handleEmailOrder = async (e) => {
     e.preventDefault();
-    if (!formData.name || !formData.phone || !formData.email || (activeZone.id !== 'recoger' && !formData.address) || !formData.date) {
-      alert('Por favor completa los campos obligatorios incluyendo tu correo electrónico.');
+    const missing = validateOrderForm(true);
+    if (missing.length > 0) {
+      setValidationModal({
+        isOpen: true,
+        title: 'Faltan datos para confirmar tu pedido',
+        message: 'Para procesar tu orden y enviarte el comprobante de confirmación, por favor completa los siguientes campos obligatorios:',
+        missingFields: missing,
+        firstFieldId: missing[0].id
+      });
       return;
     }
 
@@ -163,7 +227,13 @@ export const Cart = () => {
       setOrderSent(true);
       clearCart();
     } catch (err) {
-      alert(err.message || 'Error al procesar el pedido. Intenta por WhatsApp.');
+      setValidationModal({
+        isOpen: true,
+        title: 'Atención con tu pedido',
+        message: err.message || 'Ocurrió un problema temporal al procesar por correo. Te invitamos a completar tu pedido directamente por WhatsApp haciendo clic en el botón verde.',
+        missingFields: [],
+        firstFieldId: null
+      });
       setEmailStatus('');
     } finally {
       setSubmittingOrder(false);
@@ -214,8 +284,8 @@ export const Cart = () => {
 
           <p style={{ color: '#555', lineHeight: 1.7, marginBottom: '2rem', fontSize: '0.95rem' }}>
             {emailStatus === 'success'
-              ? 'Hemos recibido los detalles de tu pedido por correo electrónico. Nuestro equipo en Caldas, Antioquia se comunicará contigo de inmediato para coordinar la entrega.'
-              : 'Se ha abierto WhatsApp con los detalles de tu pedido. Envía el mensaje para que coordinemos la entrega a domicilio en Caldas o el Valle de Aburrá.'}
+              ? 'Hemos recibido los detalles de tu pedido por correo electrónico. Nuestro equipo se comunicará contigo de inmediato para coordinar la entrega.'
+              : 'Se ha abierto WhatsApp con los detalles de tu pedido. Envía el mensaje para que coordinemos la entrega a domicilio en Medellín.'}
           </p>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', alignItems: 'center' }}>
@@ -266,7 +336,7 @@ export const Cart = () => {
     <div className="cart-page container">
       <header className="page-header" style={{ textAlign: 'center', marginBottom: '2rem' }}>
         <span className="section-tag">Finaliza tu Pedido</span>
-        <h1 style={{ fontSize: '3rem' }}>{t('cart.title')}</h1>
+        <h1 style={{ fontSize: 'clamp(2rem, 6vw, 3rem)' }}>{t('cart.title')}</h1>
       </header>
 
       <div className="cart-grid">
@@ -278,26 +348,44 @@ export const Cart = () => {
 
           <div className="cart-items-list">
             {items.map((item) => {
-              const name = language === 'en' ? item.name_en : item.name_es;
+              const name = language === 'en'
+                ? (item.name_en || item.nameEn || item.name_es || item.nameEs || item.name || 'Floral Arrangement')
+                : (item.name_es || item.nameEs || item.name_en || item.nameEn || item.name || 'Arreglo Floral');
+              const imageSrc = api.getImageUrl(item.image);
+              const unitPrice = Number(item.price) || 0;
+              const itemTotal = unitPrice * item.quantity;
+
               return (
                 <div key={item.id} className="cart-item-row">
-                  <img src={item.image} alt={name} className="cart-item-img" />
+                  <img 
+                    src={imageSrc} 
+                    alt={name} 
+                    className="cart-item-img" 
+                    onError={(e) => { e.target.src = '/images/roses-bouquet.jpg'; }}
+                  />
                   <div className="cart-item-details">
                     <h4 className="cart-item-title">{name}</h4>
-                    <span className="cart-item-price">{formatCOP(item.price)}</span>
+                    <span className="cart-item-price" style={{ color: '#666', fontSize: '0.85rem' }}>
+                      Precio unitario: <strong style={{ color: 'var(--color-gold)', fontWeight: 600 }}>{formatCOP(unitPrice)}</strong>
+                    </span>
                   </div>
 
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <button onClick={() => updateQuantity(item.id, item.quantity - 1)} className="qty-btn">-</button>
+                  <div className="cart-item-qty-wrap" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <button onClick={() => updateQuantity(item.id, item.quantity - 1)} className="qty-btn" aria-label="Disminuir">-</button>
                     <span className="qty-val">{item.quantity}</span>
-                    <button onClick={() => updateQuantity(item.id, item.quantity + 1)} className="qty-btn">+</button>
+                    <button onClick={() => updateQuantity(item.id, item.quantity + 1)} className="qty-btn" aria-label="Aumentar">+</button>
                   </div>
 
-                  <div style={{ fontWeight: 600, color: 'var(--color-gold)', marginLeft: 'auto' }}>
-                    {formatCOP(item.price * item.quantity)}
+                  <div className="cart-item-subtotal-col" style={{ textAlign: 'right' }}>
+                    <span style={{ display: 'block', fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: '#888' }}>
+                      Subtotal
+                    </span>
+                    <span style={{ fontWeight: 700, color: 'var(--color-gold)', fontSize: '1.05rem' }}>
+                      {formatCOP(itemTotal)}
+                    </span>
                   </div>
 
-                  <button onClick={() => removeItem(item.id)} className="drawer-item-remove" style={{ marginLeft: '1rem' }}>
+                  <button onClick={() => removeItem(item.id)} className="cart-remove-btn" aria-label="Eliminar del pedido">
                     ×
                   </button>
                 </div>
@@ -369,7 +457,9 @@ export const Cart = () => {
               </div>
 
               <div className="form-group">
-                <label htmlFor="email">{t('cart.form.email')} (Para confirmación)</label>
+                <label htmlFor="email">
+                  {t('cart.form.email')} <span style={{ textTransform: 'none', fontWeight: 400, opacity: 0.85 }}>(Para confirmación)</span>
+                </label>
                 <input
                   type="email"
                   id="email"
@@ -477,7 +567,7 @@ export const Cart = () => {
                 marginBottom: '1rem',
                 lineHeight: 1.4
               }}>
-                ⏰ <strong>Horario de Cierre de Tarde:</strong> Son más de las 5:00 PM. Los pedidos para entrega hoy mismo están sujetos a disponibilidad del taller floral o se programarán para mañana a primera hora.
+                ⏰ <strong>Horario de Cierre de Tarde:</strong> Son más de las 5:00 PM. Los pedidos para entrega hoy mismo están sujetos a disponibilidad o se programarán para mañana a primera hora.
               </div>
             )}
 
@@ -538,7 +628,7 @@ export const Cart = () => {
               {/* Message */}
               <div style={{ marginBottom: '1rem' }}>
                 <label htmlFor="message" style={{ fontSize: '0.85rem', color: '#555', display: 'block', marginBottom: '0.25rem' }}>
-                  Mensaje escrito a mano en la tarjeta:
+                  Mensaje escrito en la tarjeta:
                 </label>
                 <textarea
                   id="message"
@@ -619,6 +709,16 @@ export const Cart = () => {
           </form>
         </div>
       </div>
+
+      {/* Elegant Validation & Alert Modal */}
+      <ValidationModal
+        isOpen={validationModal.isOpen}
+        onClose={() => setValidationModal((prev) => ({ ...prev, isOpen: false }))}
+        title={validationModal.title}
+        message={validationModal.message}
+        missingFields={validationModal.missingFields}
+        onFixField={handleFixField}
+      />
     </div>
   );
 };

@@ -37,13 +37,13 @@ export const generateWhatsAppLink = (cartItems, customerData, language = 'es', c
   const totalAmount = subtotal + deliveryFee;
 
   message += `%0A*Subtotal Arreglos:* ${formatCOP(subtotal)}%0A`;
-  message += `*Costo Domicilio (${customerData.municipality || 'Caldas'}):* ${deliveryFee > 0 ? formatCOP(deliveryFee) : (isSpanish ? '¡Gratis! (Recoger en tienda)' : 'Free (Pickup)')}%0A`;
+  message += `*Costo Domicilio (${customerData.municipality || 'Medellín'}):* ${deliveryFee > 0 ? formatCOP(deliveryFee) : (isSpanish ? '¡Gratis! (Recoger en tienda)' : 'Free (Pickup)')}%0A`;
   message += `*💰 TOTAL A PAGAR:* ${formatCOP(totalAmount)}%0A%0A`;
 
   message += isSpanish ? `*Datos de Entrega:*%0A` : `*Delivery Details:*%0A`;
   message += `${isSpanish ? 'Destinatario' : 'Recipient'}: ${customerData.name}%0A`;
   message += `${isSpanish ? 'Teléfono' : 'Phone'}: ${customerData.phone}%0A`;
-  message += `${isSpanish ? 'Municipio' : 'Municipality'}: ${customerData.municipality || 'Caldas'}%0A`;
+  message += `${isSpanish ? 'Municipio' : 'Municipality'}: ${customerData.municipality || 'Medellín'}%0A`;
   message += `${isSpanish ? 'Dirección' : 'Address'}: ${customerData.address}%0A`;
   message += `${isSpanish ? 'Fecha deseada' : 'Desired date'}: ${customerData.date}%0A`;
   message += `${isSpanish ? 'Jornada' : 'Time slot'}: ${customerData.time}%0A`;

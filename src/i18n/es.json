@@ -8,14 +8,14 @@
     "tracking": "Rastreo"
   },
   "hero": {
-    "subtitle": "Florería La Carreta • Caldas, Antioquia",
+    "subtitle": "Florería La Carreta • Medellín",
     "title": "Arreglos florales\nhechos con amor",
     "cta": "Ver Catálogo",
     "cta2": "Pedir por WhatsApp"
   },
   "valueProps": {
-    "delivery": "Envíos en Caldas y Área Metropolitana",
-    "deliveryText": "Entregas puntuales y cuidadosas en Caldas, Sabaneta, Envigado y Medellín.",
+    "delivery": "Envíos en todo Medellín",
+    "deliveryText": "Entregas puntuales y cuidadosas en todo Medellín (Poblado, Laureles, Belén, Centro y Norte).",
     "freshness": "Flores 100% Frescas",
     "freshnessText": "Seleccionadas cada mañana en los mejores cultivos florales de Antioquia.",
     "artisan": "Artesanía Floral",
@@ -25,9 +25,9 @@
   },
   "home": {
     "featured": "Selección Destacada",
-    "featuredSub": "Nuestros arreglos más populares, elaborados con las flores más frescas del Valle de Aburrá.",
+    "featuredSub": "Nuestros arreglos más populares, elaborados con las flores más frescas de Colombia.",
     "occasions": "Para Cada Ocasión",
-    "occasionsSub": "Encuentra el detalle floral perfecto para sorprender en Caldas y Medellín.",
+    "occasionsSub": "Encuentra el detalle floral perfecto para sorprender en Medellín.",
     "cta": "Ver todos los arreglos",
     "birthday": "Cumpleaños",
     "anniversary": "Aniversario",
@@ -44,8 +44,8 @@
     "occasionSubtitle": "Encuentra el detalle floral perfecto para sorprender y emocionar.",
     "exploreCategory": "Explorar categoría",
     "ourEssence": "Nuestra Esencia",
-    "storyTitle": "Amor por las Flores en Caldas, Antioquia",
-    "storyText": "En Florería La Carreta transformamos las mejores flores colombianas en expresiones vivas de cariño, alegría y homenaje. Cada ramo y centro de mesa es elaborado artesanalmente en nuestro taller de Caldas, honrando la tradición y la belleza de nuestra tierra.",
+    "storyTitle": "Amor por las Flores en Medellín y Antioquia",
+    "storyText": "En Florería La Carreta transformamos las mejores flores colombianas en expresiones vivas de cariño, alegría y homenaje. Cada ramo y centro de mesa es elaborado artesanalmente con dedicación, honrando la tradición floral y llevando sonrisas a todo Medellín.",
     "quote": "Las flores no resuelven todos los problemas, pero son un maravilloso inicio para alegrar el alma.",
     "readMore": "Conoce Nuestra Historia"
   },
@@ -88,7 +88,7 @@
     "whatsapp": "WhatsApp",
     "email": "Correo electrónico",
     "form": {
-      "title": "Datos de entrega en Caldas / Antioquia",
+      "title": "Datos de entrega en Medellín",
       "name": "Tu nombre completo",
       "phone": "Teléfono / WhatsApp",
       "address": "Dirección de entrega (Municipio, Barrio, Calle)",
@@ -100,37 +100,37 @@
     }
   },
   "about": {
-    "title": "Nuestra Historia en Caldas",
-    "subtitle": "Creando momentos inolvidables a través de las flores en Caldas y el Valle de Aburrá.",
-    "story": "Florería La Carreta nació en el corazón de Caldas, Antioquia, impulsada por el amor a las flores colombianas y la tradición artesanal. Seleccionamos cada flor directamente de los mejores cultivos locales para garantizar máxima frescura y belleza.",
+    "title": "Nuestra Historia Floral",
+    "subtitle": "Creando momentos inolvidables a través de las flores en Medellín.",
+    "story": "Florería La Carreta nació impulsada por el amor a las flores colombianas y la tradición artesanal. Seleccionamos cada flor directamente de los mejores cultivos locales para garantizar máxima frescura y belleza con cobertura en todo Medellín.",
     "mission": "Nuestra Misión",
-    "missionText": "Transmitir emociones auténticas a través de diseños florales excepcionales, entregando felicidad en Caldas, Sabaneta, Envigado y Medellín.",
+    "missionText": "Transmitir emociones auténticas a través de diseños florales excepcionales, entregando felicidad y sonrisas a cada rincón de Medellín.",
     "values": "Nuestros Valores",
     "freshness": "Frescura Colombiana",
     "freshnessText": "Flores frescas seleccionadas cada mañana de cultivos antioqueños.",
     "dedication": "Diseño Artesanal",
     "dedicationText": "Cada ramo es elaborado a mano con dedicación única.",
     "punctuality": "Envíos Puntuales",
-    "punctualityText": "Entregas a domicilio seguras en Caldas y área metropolitana."
+    "punctualityText": "Entregas a domicilio seguras en todo Medellín y el área metropolitana."
   },
   "contact": {
     "title": "Contáctanos",
-    "subtitle": "Estamos ubicados en Caldas, Antioquia. Atendemos pedidos a domicilio.",
+    "subtitle": "Atendemos pedidos con entrega a domicilio en todo Medellín.",
     "phone": "Teléfono / Celular",
     "whatsapp": "WhatsApp Directo",
     "email": "Correo Electrónico",
     "address": "Ubicación",
     "hours": "Horario de Atención",
     "hoursText": "Lunes a Sábado: 8:00 AM - 7:00 PM\nDomingo: 9:00 AM - 2:00 PM",
-    "addressText": "Caldas, Antioquia, Colombia"
+    "addressText": "Medellín, Antioquia"
   },
   "footer": {
-    "tagline": "Arreglos florales artesanales en Caldas, Antioquia.",
+    "tagline": "Arreglos florales artesanales con entrega a domicilio en todo Medellín.",
     "quickLinks": "Enlaces Rápidos",
     "schedule": "Horario",
     "scheduleText": "Lun - Sáb: 8:00 AM - 7:00 PM\nDom: 9:00 AM - 2:00 PM",
     "followUs": "Síguenos",
-    "rights": "Todos los derechos reservados. Caldas, Antioquia."
+    "rights": "Todos los derechos reservados. Medellín, Antioquia."
   },
   "common": {
     "currency": "COP",
