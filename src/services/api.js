@@ -300,6 +300,7 @@ export const api = {
   },
 
   // ================= ORDERS =================
+  // ================= ORDERS =================
   async getOrders(filters = {}) {
     try {
       const params = new URLSearchParams();
@@ -308,7 +309,14 @@ export const api = {
 
       const url = `${API_BASE_URL}/orders${params.toString() ? '?' + params.toString() : ''}`;
       const res = await fetch(url, { headers: getHeaders() });
-      if (res.ok) return await res.json();
+      if (res.ok) {
+        const data = await res.json();
+        // If retrieving full list, synchronize to local storage for offline resiliency
+        if (!filters.status && !filters.search && Array.isArray(data)) {
+          localStorage.setItem(LOCAL_ORDERS_KEY, JSON.stringify(data));
+        }
+        return data;
+      }
     } catch (e) {
       console.warn("API offline, returning fallback orders", e);
     }
@@ -323,23 +331,56 @@ export const api = {
   },
 
   async trackOrder(query) {
+    const cleanQuery = (query || '').toLowerCase().trim();
+    const cleanPhone = (query || '').replace(/\D/g, '');
+
     try {
       const res = await fetch(`${API_BASE_URL}/orders/track/${encodeURIComponent(query)}`);
       if (res.ok) {
         const data = await res.json();
-        if (Array.isArray(data) && data.length > 0) return data;
+        if (Array.isArray(data) && data.length > 0) {
+          // Merge with local storage
+          const saved = localStorage.getItem(LOCAL_ORDERS_KEY);
+          const orders = saved ? JSON.parse(saved) : [];
+          data.forEach(remoteOrder => {
+            const idx = orders.findIndex(o => o.orderCode === remoteOrder.orderCode || o.id === remoteOrder.id);
+            if (idx !== -1) {
+              orders[idx] = { ...orders[idx], ...remoteOrder };
+            } else {
+              orders.unshift(remoteOrder);
+            }
+          });
+          localStorage.setItem(LOCAL_ORDERS_KEY, JSON.stringify(orders));
+          return data;
+        }
       }
     } catch (e) {
       console.warn("API offline, searching local orders for tracking", e);
     }
+
     const saved = localStorage.getItem(LOCAL_ORDERS_KEY);
     const orders = saved ? JSON.parse(saved) : [];
-    const cleanQuery = query.toLowerCase().trim();
-    const cleanPhone = query.replace(/\D/g, '');
-    const found = orders.filter(o => 
-      (o.orderCode && o.orderCode.toLowerCase().includes(cleanQuery)) ||
-      (cleanPhone && o.customerPhone && o.customerPhone.includes(cleanPhone))
-    );
+    const found = orders.filter(o => {
+      const orderCodeStr = (o.orderCode || '').toLowerCase();
+      const idStr = String(o.id || '').toLowerCase();
+      const matchesCode = orderCodeStr.includes(cleanQuery) || idStr === cleanQuery;
+
+      const custPhone = (o.customerPhone || '').replace(/\D/g, '');
+      const recipPhone = (o.recipientPhone || '').replace(/\D/g, '');
+      const matchesPhone = Boolean(cleanPhone && (
+        (custPhone && custPhone.includes(cleanPhone)) ||
+        (recipPhone && recipPhone.includes(cleanPhone))
+      ));
+
+      const custName = (o.customerName || '').toLowerCase();
+      const recipName = (o.recipientName || '').toLowerCase();
+      const matchesName = Boolean(cleanQuery.length >= 3 && (
+        custName.includes(cleanQuery) || recipName.includes(cleanQuery)
+      ));
+
+      return matchesCode || matchesPhone || matchesName;
+    });
+
     if (found.length === 0) {
       throw new Error("No encontramos ningún pedido con ese código o número de teléfono.");
     }
@@ -347,73 +388,108 @@ export const api = {
   },
 
   async createOrder(orderData) {
+    let savedRemoteOrder = null;
     try {
       const res = await fetch(`${API_BASE_URL}/orders`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(orderData)
       });
-      if (res.ok) return await res.json();
+      if (res.ok) {
+        savedRemoteOrder = await res.json();
+      }
     } catch (e) {
       console.warn("API offline, saving order locally", e);
     }
+
     const saved = localStorage.getItem(LOCAL_ORDERS_KEY);
     const orders = saved ? JSON.parse(saved) : [];
-    const orderCode = `FLC-${new Date().getFullYear()}-${String(orders.length + 1).padStart(4, '0')}`;
+    const orderCode = savedRemoteOrder?.orderCode || `FLC-${new Date().getFullYear()}-${String(orders.length + 1).padStart(4, '0')}`;
     const itemsTotal = (orderData.items || []).reduce((acc, i) => acc + (i.unitPrice * i.quantity), 0);
     const deliveryFee = Number(orderData.deliveryFee || 0);
+
     const newOrder = {
       ...orderData,
-      id: orders.length + 1,
+      id: savedRemoteOrder?.id || (orders.length + 1),
       orderCode,
-      status: 'Pendiente',
+      status: savedRemoteOrder?.status || 'Pendiente',
+      customerName: orderData.customerName || '',
+      customerPhone: orderData.customerPhone || '',
+      customerEmail: orderData.customerEmail || '',
+      recipientName: orderData.recipientName || orderData.customerName || '',
+      recipientPhone: orderData.recipientPhone || orderData.customerPhone || '',
       deliveryMunicipality: orderData.deliveryMunicipality || 'Medellín',
       deliveryFee,
       cardStyle: orderData.cardStyle || 'Clásica Floral',
       cardSender: orderData.cardSender || '',
+      cardMessage: orderData.cardMessage || '',
+      specialNotes: orderData.specialNotes || '',
       totalAmount: itemsTotal + deliveryFee,
-      createdAt: new Date().toISOString()
+      createdAt: savedRemoteOrder?.createdAt || new Date().toISOString(),
+      updatedAt: new Date().toISOString()
     };
+
     orders.unshift(newOrder);
     localStorage.setItem(LOCAL_ORDERS_KEY, JSON.stringify(orders));
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new Event('floreria_orders_updated'));
+    }
     return newOrder;
   },
 
-  async updateOrderStatus(id, status) {
+  async updateOrderStatus(id, status, orderCode = '') {
     try {
-      const res = await fetch(`${API_BASE_URL}/orders/${id}/status`, {
+      await fetch(`${API_BASE_URL}/orders/${id}/status`, {
         method: 'PUT',
         headers: getHeaders(),
         body: JSON.stringify({ status })
       });
-      if (res.ok) return true;
     } catch (e) {
       console.warn("API offline, updating order status locally", e);
     }
+
+    // ALWAYS keep local storage updated so tracking works reliably across all views
     const saved = localStorage.getItem(LOCAL_ORDERS_KEY);
     const orders = saved ? JSON.parse(saved) : [];
-    const idx = orders.findIndex(o => o.id === Number(id));
+    const idx = orders.findIndex(o => 
+      o.id === Number(id) || 
+      String(o.id) === String(id) || 
+      (orderCode && o.orderCode === orderCode) || 
+      (String(id).startsWith('FLC-') && o.orderCode === id) ||
+      (String(id).startsWith('ORD-') && o.orderCode === id)
+    );
+
     if (idx !== -1) {
       orders[idx].status = status;
+      orders[idx].updatedAt = new Date().toISOString();
       localStorage.setItem(LOCAL_ORDERS_KEY, JSON.stringify(orders));
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new Event('floreria_orders_updated'));
+      }
     }
     return true;
   },
 
-  async deleteOrder(id) {
+  async deleteOrder(id, orderCode = '') {
     try {
-      const res = await fetch(`${API_BASE_URL}/orders/${id}`, {
+      await fetch(`${API_BASE_URL}/orders/${id}`, {
         method: 'DELETE',
         headers: getHeaders()
       });
-      if (res.ok) return true;
     } catch (e) {
       console.warn("API offline, deleting order locally", e);
     }
     const saved = localStorage.getItem(LOCAL_ORDERS_KEY);
     const orders = saved ? JSON.parse(saved) : [];
-    const filtered = orders.filter(o => o.id !== Number(id));
+    const filtered = orders.filter(o => 
+      o.id !== Number(id) && 
+      String(o.id) !== String(id) && 
+      (!orderCode || o.orderCode !== orderCode)
+    );
     localStorage.setItem(LOCAL_ORDERS_KEY, JSON.stringify(filtered));
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new Event('floreria_orders_updated'));
+    }
     return true;
   },
 

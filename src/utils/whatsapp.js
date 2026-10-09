@@ -40,20 +40,36 @@ export const generateWhatsAppLink = (cartItems, customerData, language = 'es', c
   message += `*Costo Domicilio (${customerData.municipality || 'Medellín'}):* ${deliveryFee > 0 ? formatCOP(deliveryFee) : (isSpanish ? '¡Gratis! (Recoger en tienda)' : 'Free (Pickup)')}%0A`;
   message += `*💰 TOTAL A PAGAR:* ${formatCOP(totalAmount)}%0A%0A`;
 
-  message += isSpanish ? `*Datos de Entrega:*%0A` : `*Delivery Details:*%0A`;
-  message += `${isSpanish ? 'Destinatario' : 'Recipient'}: ${customerData.name}%0A`;
-  message += `${isSpanish ? 'Teléfono' : 'Phone'}: ${customerData.phone}%0A`;
-  message += `${isSpanish ? 'Municipio' : 'Municipality'}: ${customerData.municipality || 'Medellín'}%0A`;
-  message += `${isSpanish ? 'Dirección' : 'Address'}: ${customerData.address}%0A`;
-  message += `${isSpanish ? 'Fecha deseada' : 'Desired date'}: ${customerData.date}%0A`;
-  message += `${isSpanish ? 'Jornada' : 'Time slot'}: ${customerData.time}%0A`;
+  message += isSpanish ? `*Datos de Entrega y Contacto:*%0A` : `*Delivery & Contact Details:*%0A`;
+  
+  const buyerName = customerData.customerName || customerData.name || '';
+  const buyerPhone = customerData.customerPhone || customerData.phone || '';
+  const recipientName = customerData.recipientName || customerData.name || '';
+  const recipientPhone = customerData.recipientPhone || customerData.phone || '';
+
+  if (buyerName) {
+    message += `👤 *${isSpanish ? 'Cliente (Comprador)' : 'Customer'}:* ${buyerName}%0A`;
+  }
+  if (buyerPhone) {
+    message += `📱 *${isSpanish ? 'Teléfono Cliente' : 'Customer Phone'}:* ${buyerPhone}%0A`;
+  }
+  if (customerData.customerEmail || customerData.email) {
+    message += `✉️ *${isSpanish ? 'Correo' : 'Email'}:* ${customerData.customerEmail || customerData.email}%0A`;
+  }
+
+  message += `%0A🎁 *${isSpanish ? 'Destinatario (Quien recibe)' : 'Recipient'}:* ${recipientName}%0A`;
+  message += `📞 *${isSpanish ? 'Teléfono Destinatario' : 'Recipient Phone'}:* ${recipientPhone}%0A`;
+  message += `📍 *${isSpanish ? 'Municipio' : 'Municipality'}:* ${customerData.municipality || 'Medellín'}%0A`;
+  message += `🏠 *${isSpanish ? 'Dirección' : 'Address'}:* ${customerData.address}%0A`;
+  message += `📅 *${isSpanish ? 'Fecha de entrega' : 'Delivery date'}:* ${customerData.date}%0A`;
+  message += `⏰ *${isSpanish ? 'Horario de entrega' : 'Time slot'}:* ${customerData.time}%0A`;
 
   if (customerData.cardStyle) {
-    message += `%0A*${isSpanish ? 'Estilo de Tarjeta' : 'Card Style'}:* ${customerData.cardStyle}%0A`;
+    message += `%0A💌 *${isSpanish ? 'Estilo de Tarjeta' : 'Card Style'}:* ${customerData.cardStyle}%0A`;
   }
 
   if (customerData.cardSender) {
-    message += `*${isSpanish ? 'De parte de' : 'From'}:* ${customerData.cardSender}%0A`;
+    message += `✍️ *${isSpanish ? 'De parte de (Firma)' : 'From'}:* ${customerData.cardSender}%0A`;
   }
 
   if (customerData.message) {

@@ -5,6 +5,8 @@ namespace FloreriaApi.DTOs
         public string CustomerName { get; set; } = string.Empty;
         public string CustomerPhone { get; set; } = string.Empty;
         public string CustomerEmail { get; set; } = string.Empty;
+        public string RecipientName { get; set; } = string.Empty;
+        public string RecipientPhone { get; set; } = string.Empty;
         public string DeliveryAddress { get; set; } = string.Empty;
         public string DeliveryMunicipality { get; set; } = "Caldas";
         public decimal DeliveryFee { get; set; } = 0;

@@ -294,20 +294,23 @@ export const Admin = () => {
   };
 
   // ================= ORDERS ACTIONS =================
-  const handleUpdateStatus = async (orderId, newStatus) => {
+  const handleUpdateStatus = async (orderId, newStatus, orderCode = '') => {
     try {
-      await api.updateOrderStatus(orderId, newStatus);
+      // Optimistic update so the admin UI updates immediately
+      setOrders(prev => prev.map(o => (o.id === orderId || (orderCode && o.orderCode === orderCode)) ? { ...o, status: newStatus } : o));
+      await api.updateOrderStatus(orderId, newStatus, orderCode);
       showNotification(`Estado de pedido actualizado a ${newStatus}`);
       fetchData();
     } catch (err) {
       alert(err.message || 'Error al actualizar pedido');
+      fetchData();
     }
   };
 
   const handleDeleteOrder = async (orderId, orderCode) => {
     if (window.confirm(`¿Eliminar el pedido ${orderCode}?`)) {
       try {
-        await api.deleteOrder(orderId);
+        await api.deleteOrder(orderId, orderCode);
         showNotification('Pedido eliminado');
         fetchData();
       } catch (err) {
@@ -325,14 +328,16 @@ export const Admin = () => {
     const headers = [
       'Código',
       'Fecha',
-      'Cliente',
-      'Teléfono',
-      'Email',
+      'Cliente (Comprador)',
+      'Teléfono Cliente',
+      'Email Cliente',
+      'Destinatario (Recibe)',
+      'Teléfono Destinatario',
       'Municipio',
       'Tarifa Domicilio',
       'Dirección de Entrega',
       'Fecha Entrega',
-      'Jornada',
+      'Jornada / Horario',
       'Estilo Tarjeta',
       'Remitente Tarjeta',
       'Mensaje Tarjeta',
@@ -346,6 +351,8 @@ export const Admin = () => {
       `"${(o.customerName || '').replace(/"/g, '""')}"`,
       `"${o.customerPhone || ''}"`,
       `"${o.customerEmail || ''}"`,
+      `"${(o.recipientName || o.customerName || '').replace(/"/g, '""')}"`,
+      `"${o.recipientPhone || o.customerPhone || ''}"`,
       `"${(o.deliveryMunicipality || 'Medellín').replace(/"/g, '""')}"`,
       o.deliveryFee || 0,
       `"${(o.deliveryAddress || '').replace(/"/g, '""')}"`,
@@ -516,7 +523,11 @@ export const Admin = () => {
     const matchesSearch = !term ||
       (o.orderCode || '').toLowerCase().includes(term) ||
       (o.customerName || '').toLowerCase().includes(term) ||
-      (o.customerPhone || '').includes(term);
+      (o.customerPhone || '').includes(term) ||
+      (o.recipientName || '').toLowerCase().includes(term) ||
+      (o.recipientPhone || '').includes(term) ||
+      (o.deliveryAddress || '').toLowerCase().includes(term) ||
+      (o.customerEmail || '').toLowerCase().includes(term);
     return matchesStatus && matchesSearch;
   });
 
@@ -1217,6 +1228,11 @@ export const Admin = () => {
                 );
                 const waLink = `https://wa.me/${cleanPhone}?text=${waMessage}`;
 
+                const recipientName = order.recipientName || order.customerName || 'Destinatario';
+                const recipientPhone = order.recipientPhone || order.customerPhone || '';
+                const cleanRecipientPhone = recipientPhone.replace(/\D/g, '');
+                const waRecipientLink = cleanRecipientPhone ? `https://wa.me/${cleanRecipientPhone}?text=${encodeURIComponent(`Hola ${recipientName}, te contactamos de Florería La Carreta sobre una entrega floral programada para ti.`)}` : '';
+
                 return (
                   <div key={order.id} style={{
                     backgroundColor: '#FFF',
@@ -1237,7 +1253,7 @@ export const Admin = () => {
                         <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>Estado:</span>
                         <select
                           value={order.status}
-                          onChange={(e) => handleUpdateStatus(order.id, e.target.value)}
+                          onChange={(e) => handleUpdateStatus(order.id, e.target.value, order.orderCode)}
                           style={{
                             padding: '0.4rem 0.8rem',
                             borderRadius: '6px',
@@ -1273,11 +1289,44 @@ export const Admin = () => {
                       </div>
                     </div>
 
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.5rem', marginBottom: '1.25rem' }}>
-                      <div>
-                        <h4 style={{ margin: '0 0 0.5rem 0', fontSize: '0.85rem', color: '#64748B', textTransform: 'uppercase' }}>Cliente</h4>
-                        <div style={{ fontWeight: 600 }}>{order.customerName}</div>
-                        <div style={{ fontSize: '0.9rem', color: '#475569' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1.5rem', marginBottom: '1.25rem' }}>
+                      {/* Destinatario */}
+                      <div style={{ backgroundColor: '#F8FAFC', padding: '0.85rem 1rem', borderRadius: '6px', border: '1px solid #E2E8F0' }}>
+                        <h4 style={{ margin: '0 0 0.4rem 0', fontSize: '0.78rem', color: 'var(--color-burgundy)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 700 }}>
+                          🎁 Destinatario (Recibe)
+                        </h4>
+                        <div style={{ fontWeight: 700, fontSize: '0.95rem', color: '#0F172A' }}>{recipientName}</div>
+                        {recipientPhone ? (
+                          <div style={{ fontSize: '0.88rem', color: '#475569', marginTop: '0.2rem' }}>
+                            📞 <a href={`tel:${recipientPhone}`} style={{ color: '#2563EB' }}>{recipientPhone}</a>
+                            {cleanRecipientPhone && (
+                              <a
+                                href={waRecipientLink}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                style={{
+                                  marginLeft: '0.5rem',
+                                  color: '#16A34A',
+                                  fontWeight: 600,
+                                  textDecoration: 'none'
+                                }}
+                              >
+                                💬 WA
+                              </a>
+                            )}
+                          </div>
+                        ) : (
+                          <div style={{ fontSize: '0.82rem', color: '#94A3B8', marginTop: '0.2rem' }}>Sin teléfono registrado</div>
+                        )}
+                      </div>
+
+                      {/* Cliente (Comprador) */}
+                      <div style={{ backgroundColor: '#F8FAFC', padding: '0.85rem 1rem', borderRadius: '6px', border: '1px solid #E2E8F0' }}>
+                        <h4 style={{ margin: '0 0 0.4rem 0', fontSize: '0.78rem', color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 700 }}>
+                          👤 Cliente (Comprador)
+                        </h4>
+                        <div style={{ fontWeight: 600, fontSize: '0.95rem' }}>{order.customerName}</div>
+                        <div style={{ fontSize: '0.88rem', color: '#475569', marginTop: '0.2rem' }}>
                           📞 <a href={`tel:${order.customerPhone}`} style={{ color: '#2563EB' }}>{order.customerPhone}</a>
                           {cleanPhone && (
                             <a
@@ -1291,31 +1340,34 @@ export const Admin = () => {
                                 textDecoration: 'none'
                               }}
                             >
-                              💬 WhatsApp
+                              💬 WA
                             </a>
                           )}
                         </div>
                         {order.customerEmail && (
-                          <div style={{ fontSize: '0.85rem', color: '#64748B' }}>✉️ {order.customerEmail}</div>
+                          <div style={{ fontSize: '0.82rem', color: '#64748B', marginTop: '0.15rem' }}>✉️ {order.customerEmail}</div>
                         )}
                       </div>
 
-                      <div>
-                        <h4 style={{ margin: '0 0 0.5rem 0', fontSize: '0.85rem', color: '#64748B', textTransform: 'uppercase' }}>Entrega</h4>
+                      {/* Entrega */}
+                      <div style={{ backgroundColor: '#F8FAFC', padding: '0.85rem 1rem', borderRadius: '6px', border: '1px solid #E2E8F0' }}>
+                        <h4 style={{ margin: '0 0 0.4rem 0', fontSize: '0.78rem', color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 700 }}>
+                          🚚 Entrega y Jornada
+                        </h4>
                         <div style={{ fontSize: '0.9rem', fontWeight: 600, color: '#1E293B' }}>
                           📍 {order.deliveryMunicipality || 'Medellín'}
-                          <span style={{ fontSize: '0.8rem', color: '#059669', fontWeight: 600, marginLeft: '0.4rem', backgroundColor: '#ECFDF5', padding: '0.15rem 0.4rem', borderRadius: '4px' }}>
-                            {order.deliveryFee > 0 ? `+${formatCOP(order.deliveryFee)} domicilio` : 'Envío Gratis / Recogida'}
+                          <span style={{ fontSize: '0.75rem', color: '#059669', fontWeight: 600, marginLeft: '0.35rem', backgroundColor: '#ECFDF5', padding: '0.1rem 0.35rem', borderRadius: '4px' }}>
+                            {order.deliveryFee > 0 ? `+${formatCOP(order.deliveryFee)}` : 'Gratis / Taller'}
                           </span>
                         </div>
-                        <div style={{ fontSize: '0.85rem', color: '#475569', marginTop: '0.25rem' }}>
+                        <div style={{ fontSize: '0.85rem', color: '#475569', marginTop: '0.2rem' }}>
                           🏠 {order.deliveryAddress || 'Recoger en Florería'}
                         </div>
-                        <div style={{ fontSize: '0.85rem', color: '#475569', marginTop: '0.25rem' }}>
+                        <div style={{ fontSize: '0.85rem', color: '#1E293B', fontWeight: 600, marginTop: '0.2rem' }}>
                           ⏰ {order.deliveryDate} {order.deliveryTime ? `• ${order.deliveryTime}` : ''}
                         </div>
                         {order.specialNotes && (
-                          <div style={{ fontSize: '0.85rem', color: '#E11D48', marginTop: '0.25rem' }}>
+                          <div style={{ fontSize: '0.82rem', color: '#E11D48', marginTop: '0.2rem' }}>
                             Nota: {order.specialNotes}
                           </div>
                         )}

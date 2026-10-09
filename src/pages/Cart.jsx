@@ -7,6 +7,7 @@ import { generateWhatsAppLink, formatCOP } from '../utils/whatsapp';
 import { api } from '../services/api';
 import { useSiteSettings } from '../context/SiteSettingsContext';
 import { ValidationModal } from '../components/ValidationModal';
+import { IconWhatsApp } from '../components/Icons';
 
 export const DELIVERY_ZONES = [
   { id: 'medellin_sur', name: 'Medellín Sur (El Poblado, Guayabal)', fee: 18000, description: 'Zona Sur de Medellín' },
@@ -18,6 +19,16 @@ export const DELIVERY_ZONES = [
   { id: 'la_estrella', name: 'La Estrella', fee: 10000, description: 'Área Metropolitana Sur' },
   { id: 'caldas', name: 'Caldas', fee: 8000, description: 'Área Metropolitana Sur' },
   { id: 'recoger', name: 'Recoger en Florería (Punto de Entrega)', fee: 0, description: '¡Gratis! Sin costo de envío' }
+];
+
+export const DELIVERY_TIME_SLOTS = [
+  { id: 'manana_temprano', label: 'Mañana Temprano (8:00 AM - 11:00 AM)', cutoffHour: 11 },
+  { id: 'mediodia', label: 'Mediodía (11:00 AM - 2:00 PM)', cutoffHour: 14 },
+  { id: 'tarde', label: 'Tarde (2:00 PM - 5:00 PM)', cutoffHour: 17 },
+  { id: 'tarde_noche', label: 'Tarde - Noche (5:00 PM - 7:30 PM)', cutoffHour: 19 },
+  { id: 'jornada_manana', label: 'Jornada Mañana (8:00 AM - 1:00 PM)', cutoffHour: 13 },
+  { id: 'jornada_tarde', label: 'Jornada Tarde (1:00 PM - 6:00 PM)', cutoffHour: 18 },
+  { id: 'express', label: 'Horario Específico / Express (Coordinar hora exacta por WhatsApp)', cutoffHour: 20 }
 ];
 
 export const CARD_STYLES = [
@@ -48,12 +59,16 @@ export const Cart = () => {
   const [cardStyleId, setCardStyleId] = useState('clasica');
 
   const [formData, setFormData] = useState({
-    name: '',
-    phone: '',
-    email: '',
+    // Cliente (quien compra / envía)
+    customerName: '',
+    customerPhone: '',
+    customerEmail: '',
+    // Destinatario (quien recibe las flores)
+    recipientName: '',
+    recipientPhone: '',
     address: '',
     date: todayStr,
-    time: 'Jornada Mañana (8:00 AM - 1:00 PM)',
+    time: DELIVERY_TIME_SLOTS[0].label,
     cardSender: '',
     message: '',
     notes: ''
@@ -61,8 +76,8 @@ export const Cart = () => {
 
   const [orderSent, setOrderSent] = useState(false);
   const [createdOrderCode, setCreatedOrderCode] = useState('');
+  const [savedWhatsAppUrl, setSavedWhatsAppUrl] = useState('');
   const [submittingOrder, setSubmittingOrder] = useState(false);
-  const [emailStatus, setEmailStatus] = useState('');
 
   // Validation Modal state to replace browser alert
   const [validationModal, setValidationModal] = useState({
@@ -86,31 +101,39 @@ export const Cart = () => {
   // Check cut-off rules for today
   const isSelectedToday = formData.date === todayStr;
   const currentHour = new Date().getHours();
-  const isMorningCutoff = isSelectedToday && currentHour >= 13;
-  const isEveningCutoff = isSelectedToday && currentHour >= 17;
+  const isEveningCutoff = isSelectedToday && currentHour >= 18;
 
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => {
       const next = { ...prev, [name]: value };
-      // Auto-switch away from morning if user selects today in the afternoon
-      if (name === 'date' && value === todayStr && currentHour >= 13 && next.time.includes('Mañana')) {
-        next.time = 'Jornada Tarde (2:00 PM - 6:00 PM)';
+      // Auto-switch time slot if user selects today and current slot is expired
+      if (name === 'date' && value === todayStr) {
+        const selectedSlot = DELIVERY_TIME_SLOTS.find(s => s.label === next.time);
+        if (selectedSlot && currentHour >= selectedSlot.cutoffHour) {
+          const firstAvailable = DELIVERY_TIME_SLOTS.find(s => currentHour < s.cutoffHour);
+          if (firstAvailable) {
+            next.time = firstAvailable.label;
+          }
+        }
       }
       return next;
     });
   };
 
-  const validateOrderForm = (requireEmail = false) => {
+  const validateOrderForm = () => {
     const missing = [];
-    if (!formData.name.trim()) {
-      missing.push({ id: 'name', label: 'Nombre completo (quién recibe)' });
+    if (!formData.customerName.trim()) {
+      missing.push({ id: 'customerName', label: 'Tu nombre completo (quién compra / envía)' });
     }
-    if (!formData.phone.trim()) {
-      missing.push({ id: 'phone', label: 'Teléfono / WhatsApp de contacto' });
+    if (!formData.customerPhone.trim()) {
+      missing.push({ id: 'customerPhone', label: 'Tu teléfono / WhatsApp de contacto' });
     }
-    if (requireEmail && !formData.email.trim()) {
-      missing.push({ id: 'email', label: 'Correo electrónico (para enviarte la confirmación)' });
+    if (!formData.recipientName.trim()) {
+      missing.push({ id: 'recipientName', label: 'Nombre de quién recibe las flores (destinatario)' });
+    }
+    if (!formData.recipientPhone.trim()) {
+      missing.push({ id: 'recipientPhone', label: 'Teléfono de quién recibe (para la entrega)' });
     }
     if (activeZone.id !== 'recoger' && !formData.address.trim()) {
       const zoneName = activeZone.name.split('(')[0].trim();
@@ -118,6 +141,9 @@ export const Cart = () => {
     }
     if (!formData.date) {
       missing.push({ id: 'date', label: 'Fecha de entrega deseada' });
+    }
+    if (!formData.time) {
+      missing.push({ id: 'time', label: 'Horario o jornada de entrega' });
     }
     return missing;
   };
@@ -139,9 +165,11 @@ export const Cart = () => {
   };
 
   const prepareOrderPayload = () => ({
-    customerName: formData.name,
-    customerPhone: formData.phone,
-    customerEmail: formData.email,
+    customerName: formData.customerName.trim() || formData.recipientName.trim(),
+    customerPhone: formData.customerPhone.trim() || formData.recipientPhone.trim(),
+    customerEmail: formData.customerEmail.trim(),
+    recipientName: formData.recipientName.trim() || formData.customerName.trim(),
+    recipientPhone: formData.recipientPhone.trim() || formData.customerPhone.trim(),
     deliveryAddress: activeZone.id === 'recoger' ? 'Recoger en Florería (Punto de Entrega)' : formData.address,
     deliveryMunicipality: activeZone.name,
     deliveryFee: activeZone.fee,
@@ -161,9 +189,9 @@ export const Cart = () => {
     }))
   });
 
-  const handleWhatsAppOrder = async (e) => {
-    e.preventDefault();
-    const missing = validateOrderForm(false);
+  const handleSendOrder = async (e) => {
+    if (e && e.preventDefault) e.preventDefault();
+    const missing = validateOrderForm();
     if (missing.length > 0) {
       setValidationModal({
         isOpen: true,
@@ -177,14 +205,17 @@ export const Cart = () => {
 
     setSubmittingOrder(true);
     let orderCode = '';
+    const payload = prepareOrderPayload();
+
     try {
-      const orderRes = await api.createOrder(prepareOrderPayload());
+      const orderRes = await api.createOrder(payload);
       orderCode = orderRes?.orderCode || '';
-      setCreatedOrderCode(orderCode);
     } catch (err) {
-      console.warn("Could not save order to API before WhatsApp redirect", err);
+      console.warn("Could not save order to API, using local fallback", err);
     } finally {
       setSubmittingOrder(false);
+      setCreatedOrderCode(orderCode);
+
       const waUrl = generateWhatsAppLink(
         items,
         {
@@ -197,46 +228,10 @@ export const Cart = () => {
         language,
         whatsApp
       );
-      window.open(waUrl, '_blank');
+
+      setSavedWhatsAppUrl(waUrl);
       setOrderSent(true);
       clearCart();
-    }
-  };
-
-  const handleEmailOrder = async (e) => {
-    e.preventDefault();
-    const missing = validateOrderForm(true);
-    if (missing.length > 0) {
-      setValidationModal({
-        isOpen: true,
-        title: 'Faltan datos para confirmar tu pedido',
-        message: 'Para procesar tu orden y enviarte el comprobante de confirmación, por favor completa los siguientes campos obligatorios:',
-        missingFields: missing,
-        firstFieldId: missing[0].id
-      });
-      return;
-    }
-
-    setSubmittingOrder(true);
-    setEmailStatus('sending');
-    
-    try {
-      const orderRes = await api.createOrder(prepareOrderPayload());
-      setCreatedOrderCode(orderRes?.orderCode || '');
-      setEmailStatus('success');
-      setOrderSent(true);
-      clearCart();
-    } catch (err) {
-      setValidationModal({
-        isOpen: true,
-        title: 'Atención con tu pedido',
-        message: err.message || 'Ocurrió un problema temporal al procesar por correo. Te invitamos a completar tu pedido directamente por WhatsApp haciendo clic en el botón verde.',
-        missingFields: [],
-        firstFieldId: null
-      });
-      setEmailStatus('');
-    } finally {
-      setSubmittingOrder(false);
     }
   };
 
@@ -255,54 +250,134 @@ export const Cart = () => {
 
   if (orderSent) {
     return (
-      <div className="cart-page container text-center" style={{ padding: '4rem 1rem' }}>
+      <div className="cart-page container text-center" style={{ padding: '3.5rem 1rem' }}>
         <div style={{
-          maxWidth: '580px',
+          maxWidth: '620px',
           margin: '0 auto',
           padding: '3rem 2rem',
           border: '1px solid var(--color-border)',
-          backgroundColor: 'var(--color-bg-alt)',
-          borderRadius: '8px'
+          backgroundColor: '#FFFFFF',
+          borderRadius: '12px',
+          boxShadow: '0 10px 25px rgba(0,0,0,0.05)'
         }}>
-          <span style={{ fontSize: '3.5rem', display: 'block', marginBottom: '1rem' }}>🌸</span>
-          <h2 style={{ fontSize: '2.25rem', marginBottom: '0.5rem', color: 'var(--color-burgundy)' }}>¡Gracias por tu pedido!</h2>
+          <span style={{ fontSize: '3.5rem', display: 'block', marginBottom: '0.75rem' }}>🌸</span>
+          <h2 style={{ fontSize: '2.25rem', marginBottom: '0.5rem', color: 'var(--color-burgundy)', fontFamily: 'var(--font-serif)' }}>
+            ¡Gracias por tu pedido!
+          </h2>
+          <p style={{ color: '#555', fontSize: '0.95rem', marginBottom: '1.25rem' }}>
+            Tu solicitud floral ha sido registrada con éxito en nuestro sistema.
+          </p>
           
           {createdOrderCode && (
             <div style={{
               display: 'inline-block',
-              backgroundColor: 'var(--color-pink)',
+              backgroundColor: '#FDF2F8',
+              border: '1px solid #FBCFE8',
               color: 'var(--color-burgundy)',
               padding: '0.5rem 1.25rem',
               borderRadius: '20px',
               fontWeight: 700,
-              fontSize: '1rem',
-              margin: '1rem 0 1.5rem 0'
+              fontSize: '1.05rem',
+              fontFamily: 'monospace',
+              letterSpacing: '0.05em',
+              margin: '0.5rem 0 1.5rem 0'
             }}>
               Código de Pedido: {createdOrderCode}
             </div>
           )}
 
-          <p style={{ color: '#555', lineHeight: 1.7, marginBottom: '2rem', fontSize: '0.95rem' }}>
-            {emailStatus === 'success'
-              ? 'Hemos recibido los detalles de tu pedido por correo electrónico. Nuestro equipo se comunicará contigo de inmediato para coordinar la entrega.'
-              : 'Se ha abierto WhatsApp con los detalles de tu pedido. Envía el mensaje para que coordinemos la entrega a domicilio en Medellín.'}
-          </p>
+          {/* Quick Summary Card */}
+          <div style={{
+            backgroundColor: '#F8FAFC',
+            border: '1px solid #E2E8F0',
+            borderRadius: '8px',
+            padding: '1.25rem',
+            textAlign: 'left',
+            marginBottom: '1.75rem',
+            fontSize: '0.88rem',
+            color: '#334155'
+          }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '0.75rem' }}>
+              <div>
+                <span style={{ color: '#64748B', display: 'block', fontSize: '0.75rem', textTransform: 'uppercase', fontWeight: 600 }}>
+                  Destinatario (Quién Recibe)
+                </span>
+                <strong>{formData.recipientName}</strong>
+                <span style={{ display: 'block', color: '#475569' }}>📞 {formData.recipientPhone}</span>
+              </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', alignItems: 'center' }}>
+              <div>
+                <span style={{ color: '#64748B', display: 'block', fontSize: '0.75rem', textTransform: 'uppercase', fontWeight: 600 }}>
+                  Cliente (Quién Compra)
+                </span>
+                <strong>{formData.customerName}</strong>
+                <span style={{ display: 'block', color: '#475569' }}>📱 {formData.customerPhone}</span>
+              </div>
+
+              <div style={{ gridColumn: '1 / -1' }}>
+                <span style={{ color: '#64748B', display: 'block', fontSize: '0.75rem', textTransform: 'uppercase', fontWeight: 600 }}>
+                  Dirección y Horario
+                </span>
+                <span>📍 {activeZone.name.split('(')[0].trim()} — {formData.address || 'Recoger en Florería'}</span>
+                <span style={{ display: 'block', color: '#059669', fontWeight: 600, marginTop: '0.2rem' }}>
+                  📅 {formData.date} • ⏰ {formData.time}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Primary Action: Continuar a WhatsApp CTA */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem', alignItems: 'center' }}>
+            {savedWhatsAppUrl && (
+              <a
+                href={savedWhatsAppUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '0.65rem',
+                  backgroundColor: '#25D366',
+                  color: '#FFF',
+                  padding: '1rem 1.75rem',
+                  borderRadius: '8px',
+                  fontWeight: 700,
+                  fontSize: '1.05rem',
+                  textDecoration: 'none',
+                  width: '100%',
+                  maxWidth: '360px',
+                  boxShadow: '0 4px 14px rgba(37, 211, 102, 0.35)',
+                  transition: 'transform 0.2s ease'
+                }}
+              >
+                <IconWhatsApp size={22} color="#FFF" />
+                <span>Continuar a WhatsApp</span>
+              </a>
+            )}
+
+            <p style={{ color: '#666', fontSize: '0.82rem', maxWidth: '400px', margin: '0 auto 0.5rem auto', lineHeight: 1.5 }}>
+              Haz clic en el botón de WhatsApp para enviar el resumen del pedido a nuestra florería y coordinar la entrega o método de pago de inmediato.
+            </p>
+
             {createdOrderCode && (
               <Link
                 to={`/rastreo?codigo=${createdOrderCode}`}
                 className="btn-primary"
                 style={{
-                  display: 'inline-block',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '0.5rem',
                   width: '100%',
-                  maxWidth: '300px',
+                  maxWidth: '360px',
                   backgroundColor: 'var(--color-burgundy)',
                   color: '#FFF',
-                  padding: '0.8rem',
+                  padding: '0.85rem 1.5rem',
                   textDecoration: 'none',
-                  borderRadius: '4px',
-                  fontWeight: 600
+                  borderRadius: '6px',
+                  fontWeight: 600,
+                  fontSize: '0.95rem'
                 }}
               >
                 🔍 Rastrear mi Pedido en Tiempo Real
@@ -311,7 +386,6 @@ export const Cart = () => {
 
             <Link
               to="/catalogo"
-              onClick={clearCart}
               style={{
                 display: 'inline-block',
                 color: '#666',
@@ -423,96 +497,163 @@ export const Cart = () => {
         {/* Delivery Form Column */}
         <div className="contact-form-panel">
           <span className="section-tag">{t('cart.form.title')}</span>
-          <h3 style={{ fontSize: '1.75rem', marginBottom: '1.5rem' }}>Datos de Entrega & Tarjeta</h3>
+          <h3 style={{ fontSize: '1.75rem', marginBottom: '1.5rem' }}>Datos del Pedido & Entrega</h3>
 
-          <form className="luxury-form">
-            {/* Recipient Name */}
-            <div className="form-group">
-              <label htmlFor="name">{t('cart.form.name')} (Quién recibe) *</label>
-              <input
-                type="text"
-                id="name"
-                name="name"
-                required
-                value={formData.name}
-                onChange={handleChange}
-                placeholder="Ej. Carlos Andrés Restrepo"
-                className="luxury-input"
-              />
-            </div>
-
-            <div className="form-row-2">
-              <div className="form-group">
-                <label htmlFor="phone">{t('cart.form.phone')} *</label>
-                <input
-                  type="tel"
-                  id="phone"
-                  name="phone"
-                  required
-                  value={formData.phone}
-                  onChange={handleChange}
-                  placeholder="300 123 4567"
-                  className="luxury-input"
-                />
+          <form className="luxury-form" onSubmit={handleSendOrder}>
+            {/* SECCIÓN 1: DATOS DE QUIEN COMPRA (CLIENTE) */}
+            <div style={{
+              backgroundColor: '#FAF5F6',
+              border: '1px solid #F5D6DB',
+              borderRadius: '8px',
+              padding: '1.25rem',
+              marginBottom: '1.5rem'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                <span style={{ fontSize: '1.25rem' }}>👤</span>
+                <h4 style={{ margin: 0, fontSize: '1rem', color: 'var(--color-burgundy)', fontWeight: 700 }}>
+                  Datos de Quien Compra (Cliente)
+                </h4>
               </div>
+              <p style={{ fontSize: '0.8rem', color: '#666', margin: '0 0 1rem 0' }}>
+                Tu información de contacto para confirmar el pedido y coordinar el pago.
+              </p>
 
-              <div className="form-group">
-                <label htmlFor="email">
-                  {t('cart.form.email')} <span style={{ textTransform: 'none', fontWeight: 400, opacity: 0.85 }}>(Para confirmación)</span>
-                </label>
-                <input
-                  type="email"
-                  id="email"
-                  name="email"
-                  value={formData.email}
-                  onChange={handleChange}
-                  placeholder="tu@correo.com"
-                  className="luxury-input"
-                />
-              </div>
-            </div>
-
-            {/* FEATURE 1: DYNAMIC DELIVERY ZONES & MUNICIPALITY */}
-            <div className="form-group" style={{ backgroundColor: '#FDF8F8', border: '1px solid #F5D6D6', padding: '1rem', borderRadius: '6px' }}>
-              <label htmlFor="deliveryZone" style={{ fontWeight: 600, color: 'var(--color-burgundy)', display: 'block', marginBottom: '0.35rem' }}>
-                📍 Municipio o Zona de Entrega *
-              </label>
-              <select
-                id="deliveryZone"
-                value={deliveryZoneId}
-                onChange={(e) => setDeliveryZoneId(e.target.value)}
-                className="luxury-input"
-                style={{ width: '100%', fontWeight: 500 }}
-              >
-                {DELIVERY_ZONES.map(z => (
-                  <option key={z.id} value={z.id}>
-                    {z.name} — {z.fee === 0 ? 'Gratis' : formatCOP(z.fee)}
-                  </option>
-                ))}
-              </select>
-              <span style={{ fontSize: '0.78rem', color: '#666', display: 'block', marginTop: '0.35rem' }}>
-                {activeZone.description}
-              </span>
-            </div>
-
-            {/* Address */}
-            {activeZone.id !== 'recoger' && (
-              <div className="form-group">
-                <label htmlFor="address">{t('cart.form.address')} en {activeZone.name.split('(')[0]} *</label>
+              <div className="form-group" style={{ marginBottom: '0.85rem' }}>
+                <label htmlFor="customerName">Tu Nombre Completo *</label>
                 <input
                   type="text"
-                  id="address"
-                  name="address"
+                  id="customerName"
+                  name="customerName"
                   required
-                  value={formData.address}
+                  value={formData.customerName}
                   onChange={handleChange}
-                  placeholder="Barrio, calle, carrera, número de casa o apto"
+                  placeholder="Ej. Andrés Felipe Restrepo"
                   className="luxury-input"
                 />
               </div>
-            )}
 
-            {/* FEATURE 2: REAL DATE & TIME RULES */}
+              <div className="form-row-2">
+                <div className="form-group">
+                  <label htmlFor="customerPhone">Tu Teléfono / WhatsApp *</label>
+                  <input
+                    type="tel"
+                    id="customerPhone"
+                    name="customerPhone"
+                    required
+                    value={formData.customerPhone}
+                    onChange={handleChange}
+                    placeholder="300 123 4567"
+                    className="luxury-input"
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label htmlFor="customerEmail">
+                    Tu Correo Electrónico <span style={{ textTransform: 'none', fontWeight: 400, opacity: 0.85 }}>(Opcional)</span>
+                  </label>
+                  <input
+                    type="email"
+                    id="customerEmail"
+                    name="customerEmail"
+                    value={formData.customerEmail}
+                    onChange={handleChange}
+                    placeholder="tu@correo.com"
+                    className="luxury-input"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* SECCIÓN 2: DATOS DE QUIEN RECIBE (DESTINATARIO) */}
+            <div style={{
+              backgroundColor: '#FFFFFF',
+              border: '1px solid #E5E7EB',
+              borderRadius: '8px',
+              padding: '1.25rem',
+              marginBottom: '1.5rem'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                <span style={{ fontSize: '1.25rem' }}>🎁</span>
+                <h4 style={{ margin: 0, fontSize: '1rem', color: 'var(--color-burgundy)', fontWeight: 700 }}>
+                  Datos de Quien Recibe (Destinatario)
+                </h4>
+              </div>
+              <p style={{ fontSize: '0.8rem', color: '#666', margin: '0 0 1rem 0' }}>
+                Información de entrega a donde enviaremos las flores.
+              </p>
+
+              <div className="form-row-2" style={{ marginBottom: '0.85rem' }}>
+                <div className="form-group">
+                  <label htmlFor="recipientName">Nombre de Quien Recibe *</label>
+                  <input
+                    type="text"
+                    id="recipientName"
+                    name="recipientName"
+                    required
+                    value={formData.recipientName}
+                    onChange={handleChange}
+                    placeholder="Ej. María Camila Restrepo"
+                    className="luxury-input"
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label htmlFor="recipientPhone">Teléfono de Quien Recibe *</label>
+                  <input
+                    type="tel"
+                    id="recipientPhone"
+                    name="recipientPhone"
+                    required
+                    value={formData.recipientPhone}
+                    onChange={handleChange}
+                    placeholder="310 987 6543 (Para llamar al entregar)"
+                    className="luxury-input"
+                  />
+                </div>
+              </div>
+
+              {/* DYNAMIC DELIVERY ZONES & MUNICIPALITY */}
+              <div className="form-group" style={{ marginBottom: '0.85rem' }}>
+                <label htmlFor="deliveryZone" style={{ fontWeight: 600, color: '#374151', display: 'block', marginBottom: '0.35rem' }}>
+                  📍 Municipio o Zona de Entrega *
+                </label>
+                <select
+                  id="deliveryZone"
+                  value={deliveryZoneId}
+                  onChange={(e) => setDeliveryZoneId(e.target.value)}
+                  className="luxury-input"
+                  style={{ width: '100%', fontWeight: 500 }}
+                >
+                  {DELIVERY_ZONES.map(z => (
+                    <option key={z.id} value={z.id}>
+                      {z.name} — {z.fee === 0 ? 'Gratis' : formatCOP(z.fee)}
+                    </option>
+                  ))}
+                </select>
+                <span style={{ fontSize: '0.78rem', color: '#666', display: 'block', marginTop: '0.35rem' }}>
+                  {activeZone.description}
+                </span>
+              </div>
+
+              {/* Address */}
+              {activeZone.id !== 'recoger' && (
+                <div className="form-group">
+                  <label htmlFor="address">Dirección de Entrega en {activeZone.name.split('(')[0].trim()} *</label>
+                  <input
+                    type="text"
+                    id="address"
+                    name="address"
+                    required
+                    value={formData.address}
+                    onChange={handleChange}
+                    placeholder="Barrio, calle, carrera, torre, número de casa o apto"
+                    className="luxury-input"
+                  />
+                </div>
+              )}
+            </div>
+
+            {/* SECCIÓN 3: FECHA Y HORARIOS DE ENTREGA EXPANDIDOS */}
             <div className="form-row-2">
               <div className="form-group">
                 <label htmlFor="date">Fecha de Entrega *</label>
@@ -534,7 +675,7 @@ export const Cart = () => {
               </div>
 
               <div className="form-group">
-                <label htmlFor="time">Jornada de Entrega *</label>
+                <label htmlFor="time">Horario / Jornada de Entrega *</label>
                 <select
                   id="time"
                   name="time"
@@ -542,15 +683,14 @@ export const Cart = () => {
                   onChange={handleChange}
                   className="luxury-input"
                 >
-                  <option value="Jornada Mañana (8:00 AM - 1:00 PM)" disabled={isMorningCutoff}>
-                    Jornada Mañana (8:00 AM - 1:00 PM) {isMorningCutoff ? '— (Cerrada para hoy)' : ''}
-                  </option>
-                  <option value="Jornada Tarde (2:00 PM - 6:00 PM)">
-                    Jornada Tarde (2:00 PM - 6:00 PM)
-                  </option>
-                  <option value="Hora Específica / Express (Coordinar por WhatsApp)">
-                    Hora Específica / Express (+ Coordinación)
-                  </option>
+                  {DELIVERY_TIME_SLOTS.map(slot => {
+                    const isClosed = isSelectedToday && currentHour >= slot.cutoffHour;
+                    return (
+                      <option key={slot.id} value={slot.label} disabled={isClosed}>
+                        {slot.label} {isClosed ? '— (Cerrado hoy)' : ''}
+                      </option>
+                    );
+                  })}
                 </select>
               </div>
             </div>
@@ -567,11 +707,11 @@ export const Cart = () => {
                 marginBottom: '1rem',
                 lineHeight: 1.4
               }}>
-                ⏰ <strong>Horario de Cierre de Tarde:</strong> Son más de las 5:00 PM. Los pedidos para entrega hoy mismo están sujetos a disponibilidad o se programarán para mañana a primera hora.
+                ⏰ <strong>Aviso de horario:</strong> Son más de las 6:00 PM. Los pedidos para hoy se atienden bajo confirmación o se programan a primera hora de mañana.
               </div>
             )}
 
-            {/* FEATURE 3: DEDICATION CARD STYLE SELECTOR & PREVIEW */}
+            {/* SECCIÓN 4: DEDICATORIA Y TARJETA */}
             <div className="form-group" style={{ marginTop: '1.5rem', borderTop: '1px solid #E5E7EB', paddingTop: '1.25rem' }}>
               <label style={{ fontWeight: 600, display: 'block', marginBottom: '0.5rem' }}>
                 💌 Estilo de la Tarjeta de Dedicatoria (Gratis)
@@ -611,7 +751,7 @@ export const Cart = () => {
               {/* Sender Name */}
               <div style={{ marginBottom: '0.75rem' }}>
                 <label htmlFor="cardSender" style={{ fontSize: '0.85rem', color: '#555', display: 'block', marginBottom: '0.25rem' }}>
-                  De parte de: <span style={{ color: '#888' }}>(Opcional — déjalo vacío si es sorpresa anónima)</span>
+                  De parte de (Firma en tarjeta): <span style={{ color: '#888' }}>(Opcional — déjalo vacío si es anónima)</span>
                 </label>
                 <input
                   type="text"
@@ -619,7 +759,7 @@ export const Cart = () => {
                   name="cardSender"
                   value={formData.cardSender}
                   onChange={handleChange}
-                  placeholder="Ej. Tu admirador secreto, Tu familia con amor, etc."
+                  placeholder="Ej. Tu admirador secreto, Familia Gómez, Carlos..."
                   className="luxury-input"
                   style={{ fontSize: '0.85rem' }}
                 />
@@ -671,14 +811,14 @@ export const Cart = () => {
                   </p>
 
                   <div style={{ textAlign: 'right', marginTop: '0.75rem', fontWeight: 600, fontSize: '0.85rem' }}>
-                    {formData.cardSender ? `— Con cariño, ${formData.cardSender}` : '— (Entrega sin firma / Anónima)'}
+                    {formData.cardSender ? `— ${formData.cardSender}` : '— (Entrega sin firma / Anónima)'}
                   </div>
                 </div>
               )}
             </div>
 
             {/* Special delivery notes */}
-            <div className="form-group">
+            <div className="form-group" style={{ marginBottom: '1.5rem' }}>
               <label htmlFor="notes">{t('cart.form.notes')}</label>
               <textarea
                 id="notes"
@@ -691,20 +831,39 @@ export const Cart = () => {
               ></textarea>
             </div>
 
-            {/* Ordering Buttons */}
-            <div className="checkout-buttons" style={{ marginTop: '1.5rem' }}>
-              <button onClick={handleWhatsAppOrder} type="button" className="btn-checkout-wa" disabled={submittingOrder}>
-                📱 {submittingOrder ? 'Procesando...' : `${t('cart.orderVia')} WhatsApp`}
+            {/* UNIFIED SINGLE ORDERING BUTTON */}
+            <div style={{ marginTop: '1.75rem' }}>
+              <button
+                type="submit"
+                disabled={submittingOrder}
+                className="btn-primary"
+                style={{
+                  width: '100%',
+                  padding: '1.1rem',
+                  fontSize: '1.1rem',
+                  fontWeight: 700,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '0.6rem',
+                  borderRadius: '6px',
+                  boxShadow: '0 4px 14px rgba(123, 20, 60, 0.25)',
+                  cursor: submittingOrder ? 'not-allowed' : 'pointer'
+                }}
+              >
+                {submittingOrder ? (
+                  <span>Procesando pedido...</span>
+                ) : (
+                  <>
+                    <span>🌸</span>
+                    <span>Enviar pedido</span>
+                  </>
+                )}
               </button>
 
-              <button 
-                onClick={handleEmailOrder} 
-                type="button" 
-                className="btn-checkout-email"
-                disabled={submittingOrder || emailStatus === 'sending'}
-              >
-                ✉️ {emailStatus === 'sending' ? 'Enviando...' : `${t('cart.orderVia')} Correo Electrónico`}
-              </button>
+              <span style={{ fontSize: '0.8rem', color: '#666', textAlign: 'center', display: 'block', marginTop: '0.6rem' }}>
+                🔒 Tu pedido se registrará de inmediato y tendrás acceso a la confirmación, WhatsApp y rastreo en tiempo real.
+              </span>
             </div>
           </form>
         </div>

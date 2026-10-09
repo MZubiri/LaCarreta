@@ -44,8 +44,15 @@ namespace FloreriaApi.Controllers
             var orders = await _context.Orders
                 .Include(o => o.Items)
                 .Where(o => 
-                    o.OrderCode.ToLower() == cleanQuery ||
-                    (!string.IsNullOrEmpty(cleanPhone) && o.CustomerPhone.Contains(cleanPhone)))
+                    o.OrderCode.ToLower().Contains(cleanQuery) ||
+                    (!string.IsNullOrEmpty(cleanPhone) && (
+                        o.CustomerPhone.Contains(cleanPhone) ||
+                        (o.RecipientPhone != null && o.RecipientPhone.Contains(cleanPhone))
+                    )) ||
+                    (cleanQuery.Length >= 3 && (
+                        o.CustomerName.ToLower().Contains(cleanQuery) ||
+                        (o.RecipientName != null && o.RecipientName.ToLower().Contains(cleanQuery))
+                    )))
                 .OrderByDescending(o => o.CreatedAt)
                 .Take(5)
                 .ToListAsync();
@@ -77,6 +84,9 @@ namespace FloreriaApi.Controllers
                     o.OrderCode.ToLower().Contains(term) ||
                     o.CustomerName.ToLower().Contains(term) ||
                     o.CustomerPhone.Contains(term) ||
+                    (o.RecipientName != null && o.RecipientName.ToLower().Contains(term)) ||
+                    (o.RecipientPhone != null && o.RecipientPhone.Contains(term)) ||
+                    (o.DeliveryAddress != null && o.DeliveryAddress.ToLower().Contains(term)) ||
                     (o.CustomerEmail != null && o.CustomerEmail.ToLower().Contains(term)));
             }
 
@@ -132,6 +142,8 @@ namespace FloreriaApi.Controllers
                 CustomerName = dto.CustomerName,
                 CustomerPhone = dto.CustomerPhone,
                 CustomerEmail = dto.CustomerEmail,
+                RecipientName = !string.IsNullOrWhiteSpace(dto.RecipientName) ? dto.RecipientName : dto.CustomerName,
+                RecipientPhone = !string.IsNullOrWhiteSpace(dto.RecipientPhone) ? dto.RecipientPhone : dto.CustomerPhone,
                 DeliveryAddress = dto.DeliveryAddress,
                 DeliveryMunicipality = !string.IsNullOrWhiteSpace(dto.DeliveryMunicipality) ? dto.DeliveryMunicipality : "Caldas",
                 DeliveryFee = dto.DeliveryFee,

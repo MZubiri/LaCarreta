@@ -23,6 +23,12 @@ namespace FloreriaApi.Models
         [MaxLength(100)]
         public string CustomerEmail { get; set; } = string.Empty;
 
+        [MaxLength(100)]
+        public string RecipientName { get; set; } = string.Empty;
+
+        [MaxLength(50)]
+        public string RecipientPhone { get; set; } = string.Empty;
+
         [Required]
         [MaxLength(300)]
         public string DeliveryAddress { get; set; } = string.Empty;

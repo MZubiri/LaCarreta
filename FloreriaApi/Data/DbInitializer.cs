@@ -260,6 +260,8 @@ namespace FloreriaApi.Data
             {
                 "ALTER TABLE Orders ADD COLUMN DeliveryMunicipality VARCHAR(100) NULL;",
                 "ALTER TABLE Orders ADD COLUMN DeliveryFee DECIMAL(18,2) NOT NULL DEFAULT 0;",
+                "ALTER TABLE Orders ADD COLUMN RecipientName VARCHAR(100) NULL;",
+                "ALTER TABLE Orders ADD COLUMN RecipientPhone VARCHAR(50) NULL;",
                 "ALTER TABLE Orders ADD COLUMN CardStyle VARCHAR(50) NULL;",
                 "ALTER TABLE Orders ADD COLUMN CardSender VARCHAR(100) NULL;",
                 "ALTER TABLE SiteSettings ADD COLUMN HeroImageUrl VARCHAR(500) NULL;",
