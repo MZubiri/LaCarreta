@@ -57,7 +57,7 @@ export const ProductCard = ({ product, onAddToCart, onQuickView }) => {
         </div>
 
         <div className="product-card-info">
-          <span className="product-card-category">{product.category}</span>
+          <span className="product-card-category">{product.category}{product.sku ? ` · ${product.sku}` : ''}</span>
           <h3 className="product-card-name">{name}</h3>
           <div className="product-card-footer">
             <span className="product-card-price">{formatCOP(product.price)}</span>

@@ -32,6 +32,7 @@ namespace FloreriaApi.DTOs
     public class UpdateOrderStatusDto
     {
         public string Status { get; set; } = string.Empty;
+        public string? FinalArrangementPhotoUrl { get; set; }
     }
 
     public class LoginDto

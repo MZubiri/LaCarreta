@@ -213,16 +213,36 @@ namespace FloreriaApi.Controllers
         [HttpPut("{id}/status")]
         public async Task<IActionResult> UpdateStatus(int id, [FromBody] UpdateOrderStatusDto dto)
         {
-            var order = await _context.Orders.FindAsync(id);
+            var order = await _context.Orders.Include(o => o.Items).FirstOrDefaultAsync(o => o.Id == id);
             if (order == null)
             {
                 return NotFound();
             }
 
-            order.Status = dto.Status;
+            if (!string.IsNullOrWhiteSpace(dto.Status))
+            {
+                order.Status = dto.Status;
+            }
+
+            if (!string.IsNullOrWhiteSpace(dto.FinalArrangementPhotoUrl))
+            {
+                order.FinalArrangementPhotoUrl = dto.FinalArrangementPhotoUrl;
+            }
+
             await _context.SaveChangesAsync();
 
-            return Ok(new { id = order.Id, status = order.Status });
+            // Fire and forget webhook alert if configured
+            var settings = await _context.SiteSettings.FirstOrDefaultAsync() ?? new SiteSettings();
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    await _telegramService.SendOrderNotificationAsync(order, settings);
+                }
+                catch { }
+            });
+
+            return Ok(new { id = order.Id, status = order.Status, finalArrangementPhotoUrl = order.FinalArrangementPhotoUrl });
         }
 
         // DELETE: api/orders/5 (Admin)

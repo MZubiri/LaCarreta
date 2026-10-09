@@ -480,7 +480,7 @@ export const TrackOrder = () => {
                   color: statusInfo.color,
                   padding: '1rem 1.25rem',
                   borderRadius: '8px',
-                  marginBottom: '2rem',
+                  marginBottom: '1.75rem',
                   display: 'flex',
                   alignItems: 'center',
                   gap: '0.75rem',
@@ -495,6 +495,105 @@ export const TrackOrder = () => {
                     <span>{statusInfo.message}</span>
                   </div>
                 </div>
+
+                {/* ================= FOTO REAL DEL ARREGLO TERMINADO EN TALLER ================= */}
+                {(order.finalArrangementPhotoUrl || order.FinalArrangementPhotoUrl) ? (
+                  <div style={{
+                    backgroundColor: '#FFFDF9',
+                    border: '2px solid #F0DEDE',
+                    borderRadius: '16px',
+                    padding: '1.5rem',
+                    marginBottom: '2rem',
+                    boxShadow: '0 8px 24px rgba(123, 20, 60, 0.08)',
+                    textAlign: 'center'
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.6rem', marginBottom: '0.5rem' }}>
+                      <span style={{ fontSize: '1.4rem' }}>🌸</span>
+                      <h4 style={{ margin: 0, fontSize: '1.15rem', color: 'var(--color-burgundy)', fontWeight: 700 }}>
+                        Fotografía Real de Tu Arreglo en Nuestro Taller
+                      </h4>
+                    </div>
+                    <p style={{ margin: '0 0 1.25rem 0', color: '#6B7280', fontSize: '0.88rem' }}>
+                      Nuestros floristas artesanos fotografiaron el arreglo antes de enviarlo para garantizar la máxima frescura y calidad.
+                    </p>
+
+                    <div style={{
+                      position: 'relative',
+                      display: 'inline-block',
+                      maxWidth: '100%',
+                      borderRadius: '12px',
+                      overflow: 'hidden',
+                      boxShadow: '0 6px 20px rgba(0,0,0,0.12)',
+                      border: '3px solid #FFF'
+                    }}>
+                      <img
+                        src={order.finalArrangementPhotoUrl || order.FinalArrangementPhotoUrl}
+                        alt={`Arreglo terminado pedido ${order.orderCode}`}
+                        style={{
+                          width: '100%',
+                          maxHeight: '420px',
+                          objectFit: 'cover',
+                          display: 'block'
+                        }}
+                      />
+                      <span style={{
+                        position: 'absolute',
+                        bottom: '12px',
+                        left: '12px',
+                        backgroundColor: 'rgba(31, 41, 55, 0.85)',
+                        backdropFilter: 'blur(4px)',
+                        color: '#FFF',
+                        fontSize: '0.75rem',
+                        fontWeight: 600,
+                        padding: '0.35rem 0.85rem',
+                        borderRadius: '20px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.4rem'
+                      }}>
+                        <span>✨ Control de Calidad Superado</span> • Florería La Carreta
+                      </span>
+                    </div>
+
+                    <div style={{ marginTop: '0.85rem' }}>
+                      <a
+                        href={order.finalArrangementPhotoUrl || order.FinalArrangementPhotoUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '0.4rem',
+                          fontSize: '0.82rem',
+                          color: 'var(--color-burgundy)',
+                          fontWeight: 600,
+                          textDecoration: 'underline'
+                        }}
+                      >
+                        🔍 Ver fotografía en tamaño original
+                      </a>
+                    </div>
+                  </div>
+                ) : (!isCancelled && (
+                  <div style={{
+                    backgroundColor: '#FAF5F5',
+                    border: '1px dashed #E8D5D5',
+                    borderRadius: '10px',
+                    padding: '0.9rem 1.25rem',
+                    marginBottom: '1.75rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.75rem',
+                    color: '#6B7280',
+                    fontSize: '0.84rem'
+                  }}>
+                    <span style={{ fontSize: '1.25rem' }}>📸</span>
+                    <div>
+                      <strong style={{ color: 'var(--color-burgundy)', display: 'block' }}>Fotografía de Taller Floral:</strong>
+                      <span>En cuanto nuestros floristas finalicen el armado artesanal de tu arreglo, publicaremos aquí la fotografía real antes de su despacho.</span>
+                    </div>
+                  </div>
+                ))}
 
                 {/* Delivery & People Information Grid */}
                 <div className="track-delivery-grid">

@@ -39,6 +39,9 @@ namespace FloreriaApi.Models
         public string OccasionEs { get; set; } = "[]"; // JSON string array e.g. ["Amor", "Aniversario"]
         public string OccasionEn { get; set; } = "[]";
 
+        [MaxLength(50)]
+        public string? Sku { get; set; }
+
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     }
 }

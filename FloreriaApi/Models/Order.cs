@@ -65,6 +65,9 @@ namespace FloreriaApi.Models
         [MaxLength(30)]
         public string Status { get; set; } = "Pendiente"; // Pendiente, EnPreparacion, EnCamino, Entregado, Cancelado
 
+        [MaxLength(500)]
+        public string? FinalArrangementPhotoUrl { get; set; }
+
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
         public List<OrderItem> Items { get; set; } = new List<OrderItem>();

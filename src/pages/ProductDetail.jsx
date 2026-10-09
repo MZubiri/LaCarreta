@@ -118,8 +118,22 @@ export const ProductDetail = () => {
           />
         </div>
 
-        <div className="modal-details" style={{ padding: 0 }}>
-          <span className="product-card-category">{(product?.category || '').toUpperCase()}</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flexWrap: 'wrap' }}>
+            <span className="product-card-category">{(product?.category || '').toUpperCase()}</span>
+            {product?.sku && (
+              <span style={{
+                fontSize: '0.72rem',
+                fontWeight: 700,
+                color: '#6B7280',
+                backgroundColor: '#F3F4F6',
+                padding: '0.2rem 0.5rem',
+                borderRadius: '4px',
+                letterSpacing: '0.05em'
+              }}>
+                SKU: {product.sku}
+              </span>
+            )}
+          </div>
           <h1 className="modal-title" style={{ fontSize: '2.75rem' }}>{name}</h1>
           <div className="modal-price" style={{ fontSize: '1.5rem', margin: '0.75rem 0 1.5rem 0' }}>
             {formatCOP(product?.price || 0)}
